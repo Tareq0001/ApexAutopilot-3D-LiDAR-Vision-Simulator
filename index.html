@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ApexAutopilot | 3D Autonomous Vehicle LiDAR & Vision Perception Simulator</title>
+  <meta name="description" content="Next-Generation 3D Autonomous Driving Perception Simulator featuring 64-beam LiDAR point cloud generation, Kalman filter sensor fusion, 3D bounding box detection, and autonomous trajectory planning.">
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&family=Outfit:wght@300;400;600;700;900&family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Three.js and OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --panel-bg: rgba(12, 17, 26, 0.85);
+      --panel-border: rgba(0, 240, 255, 0.2);
+      --panel-border-glow: rgba(0, 240, 255, 0.4);
+      --cyan: #00f0ff;
+      --cyan-dim: rgba(0, 240, 255, 0.15);
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --purple: #a855f7;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-ui: 'Outfit', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #webgl-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* UI Overlay Layer */
+    .hud-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+    }
+
+    .interactive {
+      pointer-events: auto;
+    }
+
+    /* Header Bar */
+    .hud-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 12px 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #00f0ff 0%, #0077ff 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #050811;
+      font-weight: 900;
+      font-size: 20px;
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(0, 240, 255, 0.12);
+      color: var(--cyan);
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 10px var(--emerald);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* Top Action Controls */
+    .top-controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn-action {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-action:hover {
+      background: rgba(0, 240, 255, 0.12);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(0, 240, 255, 0.2);
+    }
+
+    .btn-action.active {
+      background: var(--cyan);
+      border-color: var(--cyan);
+      color: #050811;
+      font-weight: 800;
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+    }
+
+    /* Main Center Workspace */
+    .hud-center {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-top: 16px;
+      gap: 20px;
+      flex: 1;
+    }
+
+    /* Left Panel: Perception & Sensor Fusion */
+    .panel-left {
+      width: 340px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-title {
+      font-size: 12px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
+    }
+
+    .metric-label {
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .metric-val {
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .metric-val.highlight {
+      color: var(--cyan);
+    }
+
+    /* Sensor Health Grid */
+    .sensor-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .sensor-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sensor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    .sensor-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--emerald);
+    }
+
+    .sensor-rate {
+      font-size: 13px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* Right Panel: Mission Scenarios & Views */
+    .panel-right {
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .scenario-btn {
+      width: 100%;
+      text-align: left;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.25s ease;
+    }
+
+    .scenario-btn:hover {
+      background: rgba(0, 240, 255, 0.08);
+      border-color: var(--cyan);
+      transform: translateX(-3px);
+    }
+
+    .scenario-btn.active {
+      background: rgba(0, 240, 255, 0.15);
+      border-color: var(--cyan);
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+    }
+
+    .scenario-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: rgba(0, 240, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--cyan);
+      font-size: 16px;
+    }
+
+    .scenario-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .scenario-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .scenario-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Bottom HUD Bar: Telemetry & Drive Controls */
+    .hud-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 20px;
+    }
+
+    /* Speedometer & Drive Gauge */
+    .telemetry-cluster {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .speed-display {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .speed-number {
+      font-size: 54px;
+      font-weight: 900;
+      font-family: var(--font-mono);
+      line-height: 1;
+      color: #fff;
+      text-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+    }
+
+    .speed-unit {
+      font-size: 12px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--cyan);
+      letter-spacing: 2px;
+      margin-top: 4px;
+    }
+
+    .gauge-divider {
+      width: 1px;
+      height: 60px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .drive-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    .gear-indicator {
+      display: flex;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .gear-item {
+      color: rgba(255, 255, 255, 0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .gear-item.active {
+      color: #050811;
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    /* Camera View Selector */
+    .view-selector {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 8px;
+      display: flex;
+      gap: 6px;
+    }
+
+    .view-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .view-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .view-btn.active {
+      background: rgba(0, 240, 255, 0.15);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      font-weight: 700;
+    }
+
+    /* Driver Manual Controls Overlay (Hidden when FSD active) */
+    .manual-controls-hint {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      background: rgba(12, 17, 26, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 8px 16px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .key-badge {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 2px 6px;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    /* Mini Reticle / Crosshair HUD in Vision Mode */
+    .hud-crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      opacity: 0.3;
+      transition: opacity 0.3s;
+    }
+
+    /* Notification Banner */
+    .toast-banner {
+      position: absolute;
+      top: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 240, 255, 0.15);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--cyan);
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 30px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.3);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .toast-banner.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(10px);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 900px) {
+      .panel-left, .panel-right {
+        display: none;
+      }
+      .hud-header {
+        padding: 8px 16px;
+      }
+      .speed-number {
+        font-size: 38px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3D WebGL Canvas -->
+  <div id="webgl-canvas"></div>
+
+  <!-- HUD Interface Layer -->
+  <div class="hud-layer">
+
+    <!-- Top Header -->
+    <header class="hud-header interactive">
+      <div class="brand-section">
+        <div class="brand-logo">A</div>
+        <div>
+          <div class="brand-title">
+            ApexAutopilot
+            <span class="brand-badge">LiDAR & Vision AI</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Autopilot Status Pill -->
+      <div class="status-pill" id="fsd-status-pill">
+        <div class="status-dot"></div>
+        <span id="fsd-state-text">FSD V12.8 ACTIVE</span>
+      </div>
+
+      <!-- Actions -->
+      <div class="top-controls">
+        <button class="btn-action active" id="btn-toggle-fsd" onclick="toggleFSD()">
+          <i data-lucide="zap"></i>
+          <span id="fsd-btn-label">AUTOPILOT ON</span>
+        </button>
+
+        <button class="btn-action" id="btn-toggle-audio" onclick="toggleAudio()">
+          <i data-lucide="volume-2" id="audio-icon"></i>
+          <span>AUDIO FX</span>
+        </button>
+
+        <a href="https://github.com/Tareq0001/ApexAutopilot-3D-LiDAR-Vision-Simulator" target="_blank" class="btn-action" style="text-decoration: none;">
+          <i data-lucide="github"></i>
+          <span>SOURCE</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Center Workspace -->
+    <div class="hud-center">
+      <!-- Left Panel: Sensor Fusion & Perception -->
+      <aside class="panel-left interactive">
+        <!-- Sensor Cluster Card -->
+        <div class="card">
+          <div class="card-title">
+            <i data-lucide="radar"></i> Sensor Suite Telemetry
+          </div>
+          <div class="sensor-grid">
+            <div class="sensor-item">
+              <div class="sensor-header">
+                <span>LiDAR 64-Ch</span>
+                <div class="sensor-status-dot"></div>
+              </div>
+              <div class="sensor-rate" id="lidar-rate">1,280k pts/s</div>
+            </div>
+            <div class="sensor-item">
+              <div class="sensor-header">
+                <span>8x 4K Cam</span>
+                <div class="sensor-status-dot"></div>
+              </div>
+              <div class="sensor-rate">60 FPS</div>
+            </div>
+            <div class="sensor-item">
+              <div class="sensor-header">
+                <span>4D Imaging Radar</span>
+                <div class="sensor-status-dot"></div>
+              </div>
+              <div class="sensor-rate">300m Range</div>
+            </div>
+            <div class="sensor-item">
+              <div class="sensor-header">
+                <span>GNSS / RTK</span>
+                <div class="sensor-status-dot"></div>
+              </div>
+              <div class="sensor-rate">±1.2 cm</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Perception Pipeline Metrics -->
+        <div class="card">
+          <div class="card-title">
+            <i data-lucide="cpu"></i> AI Perception Pipeline
+          </div>
+          <div class="metric-row">
+            <span class="metric-label"><i data-lucide="activity"></i> Inference Latency</span>
+            <span class="metric-val highlight" id="stat-latency">6.8 ms</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label"><i data-lucide="shield-check"></i> Perception Confidence</span>
+            <span class="metric-val highlight" id="stat-conf">99.4%</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label"><i data-lucide="box"></i> 3D Bounding Boxes</span>
+            <span class="metric-val" id="stat-boxes">14 Tracked</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label"><i data-lucide="git-commit"></i> Lane Polynomial</span>
+            <span class="metric-val" style="color: var(--amber);">Cubic Spline (Fit)</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label"><i data-lucide="navigation-2"></i> Path Plan Horizon</span>
+            <span class="metric-val">120 Meters</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right Panel: Scenarios & Presets -->
+      <aside class="panel-right interactive">
+        <div class="card">
+          <div class="card-title">
+            <i data-lucide="map-pin"></i> Simulation Scenarios
+          </div>
+
+          <button class="scenario-btn active" onclick="loadScenario(0)">
+            <div class="scenario-icon"><i data-lucide="fast-forward"></i></div>
+            <div class="scenario-text">
+              <div class="scenario-title">Highway Cruise & Overtake</div>
+              <div class="scenario-desc">High-speed cruise, radar headway & auto lane-change</div>
+            </div>
+          </button>
+
+          <button class="scenario-btn" onclick="loadScenario(1)">
+            <div class="scenario-icon"><i data-lucide="users"></i></div>
+            <div class="scenario-text">
+              <div class="scenario-title">Urban Crosswalk & Yield</div>
+              <div class="scenario-desc">Pedestrian tracking & crosswalk stopping</div>
+            </div>
+          </button>
+
+          <button class="scenario-btn" onclick="loadScenario(2)">
+            <div class="scenario-icon"><i data-lucide="alert-triangle"></i></div>
+            <div class="scenario-text">
+              <div class="scenario-title">Sudden Cut-In & AEB</div>
+              <div class="scenario-desc">Emergency braking & evasive trajectory steering</div>
+            </div>
+          </button>
+
+          <button class="scenario-btn" onclick="loadScenario(3)">
+            <div class="scenario-icon"><i data-lucide="cloud-fog"></i></div>
+            <div class="scenario-text">
+              <div class="scenario-title">Dense Fog & Sensor Stress</div>
+              <div class="scenario-desc">Camera degraded; pure LiDAR/Radar sensor fusion</div>
+            </div>
+          </button>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast-banner" id="toast-banner">
+      <i data-lucide="check-circle-2"></i>
+      <span id="toast-text">Autonomous Autopilot Engaged</span>
+    </div>
+
+    <!-- Bottom Telemetry & Controls -->
+    <footer class="hud-bottom">
+      <!-- Telemetry Gauge -->
+      <div class="telemetry-cluster interactive">
+        <div class="speed-display">
+          <div class="speed-number" id="speed-val">96</div>
+          <div class="speed-unit">KM/H</div>
+        </div>
+
+        <div class="gauge-divider"></div>
+
+        <div class="drive-stats">
+          <div class="gear-indicator">
+            <span class="gear-item">P</span>
+            <span class="gear-item">R</span>
+            <span class="gear-item">N</span>
+            <span class="gear-item active">D</span>
+          </div>
+          <div>Steering: <strong id="steer-val" style="color: var(--cyan);">+1.4°</strong></div>
+          <div>Throttle: <strong id="throttle-val" style="color: var(--emerald);">42%</strong></div>
+          <div>Brake: <strong id="brake-val" style="color: var(--rose);">0%</strong></div>
+        </div>
+      </div>
+
+      <!-- Manual Driving Hint (if FSD disabled) -->
+      <div class="manual-controls-hint interactive" id="manual-hint" style="display: none;">
+        <span>Manual Drive:</span>
+        <span><span class="key-badge">W</span> / <span class="key-badge">↑</span> Gas</span>
+        <span><span class="key-badge">S</span> / <span class="key-badge">↓</span> Brake</span>
+        <span><span class="key-badge">A</span> / <span class="key-badge">D</span> Steer</span>
+        <span><span class="key-badge">SPACE</span> Handbrake</span>
+      </div>
+
+      <!-- View Selector -->
+      <div class="view-selector interactive">
+        <button class="view-btn active" onclick="setViewMode('chase')">
+          <i data-lucide="camera"></i> Chase
+        </button>
+        <button class="view-btn" onclick="setViewMode('lidar')">
+          <i data-lucide="scan"></i> LiDAR Only
+        </button>
+        <button class="view-btn" onclick="setViewMode('bev')">
+          <i data-lucide="layers"></i> BEV Grid
+        </button>
+        <button class="view-btn" onclick="setViewMode('cockpit')">
+          <i data-lucide="eye"></i> Cockpit
+        </button>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    /* ==========================================================
+       AUDIO SYNTHESIS ENGINE (Web Audio API)
+       Electric Motor Whine + Proximity Beep + FSD Chimes
+       ========================================================== */
+    class AudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.motorOsc = null;
+        this.motorGain = null;
+        this.subOsc = null;
+        this.subGain = null;
+        this.enabled = false;
+      }
+
+      init() {
+        if (this.ctx) return;
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioContext();
+
+        // Primary electric motor whine
+        this.motorOsc = this.ctx.createOscillator();
+        this.motorOsc.type = 'sawtooth';
+        this.motorGain = this.ctx.createGain();
+        this.motorGain.gain.value = 0.0;
+
+        // Sub bass hum
+        this.subOsc = this.ctx.createOscillator();
+        this.subOsc.type = 'sine';
+        this.subGain = this.ctx.createGain();
+        this.subGain.gain.value = 0.0;
+
+        // Filter for smooth motor sound
+        this.filter = this.ctx.createBiquadFilter();
+        this.filter.type = 'lowpass';
+        this.filter.frequency.value = 800;
+
+        this.motorOsc.connect(this.filter);
+        this.filter.connect(this.motorGain);
+        this.motorGain.connect(this.ctx.destination);
+
+        this.subOsc.connect(this.subGain);
+        this.subGain.connect(this.ctx.destination);
+
+        this.motorOsc.start();
+        this.subOsc.start();
+      }
+
+      updateMotor(speed, throttle) {
+        if (!this.enabled || !this.ctx) return;
+        const baseFreq = 80 + speed * 6.5;
+        this.motorOsc.frequency.setTargetAtTime(baseFreq, this.ctx.currentTime, 0.08);
+        this.subOsc.frequency.setTargetAtTime(45 + speed * 1.5, this.ctx.currentTime, 0.08);
+        this.filter.frequency.setTargetAtTime(400 + speed * 12, this.ctx.currentTime, 0.08);
+
+        const volume = Math.min(0.12, (speed / 160) * 0.1 + (throttle / 100) * 0.04);
+        this.motorGain.gain.setTargetAtTime(volume, this.ctx.currentTime, 0.08);
+        this.subGain.gain.setTargetAtTime(volume * 0.8, this.ctx.currentTime, 0.08);
+      }
+
+      playFSDChime(engaged) {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+
+        if (engaged) {
+          // Two-tone rising chime (Tesla style)
+          osc.frequency.setValueAtTime(587.33, now); // D5
+          osc.frequency.setValueAtTime(880.00, now + 0.12); // A5
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        } else {
+          // Two-tone falling chime
+          osc.frequency.setValueAtTime(880.00, now);
+          osc.frequency.setValueAtTime(587.33, now + 0.12);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        }
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      }
+
+      playProximityBeep(urgency) {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1400, now);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      }
+    }
+
+    const audio = new AudioEngine();
+
+    function toggleAudio() {
+      audio.init();
+      audio.enabled = !audio.enabled;
+      const btn = document.getElementById('btn-toggle-audio');
+      const icon = document.getElementById('audio-icon');
+      if (audio.enabled) {
+        btn.classList.add('active');
+        icon.setAttribute('data-lucide', 'volume-2');
+        showToast('Audio Synthesizer: ON');
+      } else {
+        btn.classList.remove('active');
+        icon.setAttribute('data-lucide', 'volume-x');
+        if (audio.motorGain) {
+          audio.motorGain.gain.value = 0;
+          audio.subGain.gain.value = 0;
+        }
+        showToast('Audio Synthesizer: MUTED');
+      }
+      lucide.createIcons();
+    }
+
+    /* ==========================================================
+       THREE.JS 3D SCENE SETUP & VEHICLE SIMULATION
+       ========================================================== */
+    const container = document.getElementById('webgl-canvas');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050811);
+    scene.fog = new THREE.FogExp2(0x050811, 0.007);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.5, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 - 0.02; // Keep above ground
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0x223344, 1.2);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0x88ccff, 1.5);
+    sunLight.position.set(50, 100, 50);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    scene.add(sunLight);
+
+    /* ==========================================================
+       ROAD, LANES & ENVIRONMENT
+       ========================================================== */
+    const ROAD_WIDTH = 24; // 6 lanes (each 4m wide: -10, -6, -2, +2, +6, +10)
+    const ROAD_LENGTH = 1200;
+    const LANE_WIDTH = 4;
+    const LANES = [-6, -2, 2, 6]; // 4 main highway lanes
+
+    // Road Surface Mesh
+    const roadGeo = new THREE.PlaneGeometry(ROAD_WIDTH, ROAD_LENGTH, 1, 100);
+    const roadMat = new THREE.MeshStandardMaterial({
+      color: 0x10141d,
+      roughness: 0.85,
+      metalness: 0.1
+    });
+    const road = new THREE.Mesh(roadGeo, roadMat);
+    road.rotation.x = -Math.PI / 2;
+    road.receiveShadow = true;
+    scene.add(road);
+
+    // Ground Grid
+    const gridHelper = new THREE.GridHelper(ROAD_LENGTH, 120, 0x00f0ff, 0x131f33);
+    gridHelper.position.y = -0.05;
+    scene.add(gridHelper);
+
+    // Road Markings (Dashed Lane Lines)
+    const laneLinesGroup = new THREE.Group();
+    LANES.forEach((x, idx) => {
+      if (idx === 0) return;
+      const splitX = (LANES[idx - 1] + x) / 2;
+      for (let z = -ROAD_LENGTH / 2; z < ROAD_LENGTH / 2; z += 12) {
+        const dashGeo = new THREE.PlaneGeometry(0.2, 4);
+        const dashMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+        const dash = new THREE.Mesh(dashGeo, dashMat);
+        dash.rotation.x = -Math.PI / 2;
+        dash.position.set(splitX, 0.02, z);
+        laneLinesGroup.add(dash);
+      }
+    });
+    scene.add(laneLinesGroup);
+
+    // Roadside Street Lamps & City Buildings
+    const buildingsGroup = new THREE.Group();
+    for (let z = -ROAD_LENGTH / 2; z < ROAD_LENGTH / 2; z += 40) {
+      // Left building
+      const h1 = 30 + Math.random() * 60;
+      const w1 = 15 + Math.random() * 20;
+      const bGeo1 = new THREE.BoxGeometry(w1, h1, 25);
+      const bMat1 = new THREE.MeshStandardMaterial({
+        color: 0x0b101c,
+        roughness: 0.7,
+        metalness: 0.5
+      });
+      const b1 = new THREE.Mesh(bGeo1, bMat1);
+      b1.position.set(-ROAD_WIDTH / 2 - w1 / 2 - 8, h1 / 2, z);
+      buildingsGroup.add(b1);
+
+      // Right building
+      const h2 = 25 + Math.random() * 70;
+      const w2 = 15 + Math.random() * 20;
+      const bGeo2 = new THREE.BoxGeometry(w2, h2, 25);
+      const b2 = new THREE.Mesh(bGeo2, bMat1);
+      b2.position.set(ROAD_WIDTH / 2 + w2 / 2 + 8, h2 / 2, z);
+      buildingsGroup.add(b2);
+
+      // Street Lamps
+      [-ROAD_WIDTH / 2 - 1, ROAD_WIDTH / 2 + 1].forEach(sideX => {
+        const poleGeo = new THREE.CylinderGeometry(0.1, 0.1, 8);
+        const poleMat = new THREE.MeshStandardMaterial({ color: 0x475569 });
+        const pole = new THREE.Mesh(poleGeo, poleMat);
+        pole.position.set(sideX, 4, z);
+        buildingsGroup.add(pole);
+
+        const lightBulb = new THREE.PointLight(0x00f0ff, 0.8, 25);
+        lightBulb.position.set(sideX > 0 ? sideX - 1 : sideX + 1, 7.8, z);
+        buildingsGroup.add(lightBulb);
+      });
+    }
+    scene.add(buildingsGroup);
+
+    /* ==========================================================
+       EGO VEHICLE MODEL (Cyber Electric Sedan)
+       ========================================================== */
+    const egoGroup = new THREE.Group();
+
+    // Car Body Mesh
+    const carBodyGeo = new THREE.BoxGeometry(2.1, 0.8, 4.6);
+    const carBodyMat = new THREE.MeshStandardMaterial({
+      color: 0x0a1428,
+      roughness: 0.2,
+      metalness: 0.9,
+      envMapIntensity: 1.5
+    });
+    const carBody = new THREE.Mesh(carBodyGeo, carBodyMat);
+    carBody.position.y = 0.65;
+    carBody.castShadow = true;
+    egoGroup.add(carBody);
+
+    // Car Cabin / Windshield Glass
+    const cabinGeo = new THREE.BoxGeometry(1.8, 0.6, 2.4);
+    const cabinMat = new THREE.MeshStandardMaterial({
+      color: 0x00f0ff,
+      roughness: 0.1,
+      metalness: 0.9,
+      transparent: true,
+      opacity: 0.45
+    });
+    const cabin = new THREE.Mesh(cabinGeo, cabinMat);
+    cabin.position.set(0, 1.2, -0.2);
+    egoGroup.add(cabin);
+
+    // Headlights (Beam cones)
+    const headlightMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+    [-0.75, 0.75].forEach(x => {
+      const hl = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.1, 0.1), headlightMat);
+      hl.position.set(x, 0.65, -2.31);
+      egoGroup.add(hl);
+
+      const spot = new THREE.SpotLight(0x00f0ff, 3, 60, Math.PI / 6, 0.5);
+      spot.position.set(x, 0.65, -2.3);
+      spot.target.position.set(x, 0, -40);
+      egoGroup.add(spot);
+      egoGroup.add(spot.target);
+    });
+
+    // Taillights
+    const taillightMat = new THREE.MeshBasicMaterial({ color: 0xff0044 });
+    const tailBar = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.1, 0.1), taillightMat);
+    tailBar.position.set(0, 0.7, 2.31);
+    egoGroup.add(tailBar);
+
+    // Roof LiDAR Puck
+    const lidarPuckGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.2, 16);
+    const lidarPuckMat = new THREE.MeshStandardMaterial({ color: 0x00f0ff, metalness: 0.8 });
+    const lidarPuck = new THREE.Mesh(lidarPuckGeo, lidarPuckMat);
+    lidarPuck.position.set(0, 1.55, 0.2);
+    egoGroup.add(lidarPuck);
+
+    // LiDAR Scanner Halo Rings (Visual effect)
+    const haloGeo = new THREE.RingGeometry(0.4, 0.5, 32);
+    const haloMat = new THREE.MeshBasicMaterial({
+      color: 0x00f0ff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.8
+    });
+    const lidarHalo = new THREE.Mesh(haloGeo, haloMat);
+    lidarHalo.rotation.x = Math.PI / 2;
+    lidarHalo.position.set(0, 1.6, 0.2);
+    egoGroup.add(lidarHalo);
+
+    // Wheels
+    const wheels = [];
+    const wheelGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.3, 24);
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
+    const wheelPositions = [
+      { x: -1.05, y: 0.38, z: -1.4, isFront: true },
+      { x: 1.05, y: 0.38, z: -1.4, isFront: true },
+      { x: -1.05, y: 0.38, z: 1.4, isFront: false },
+      { x: 1.05, y: 0.38, z: 1.4, isFront: false }
+    ];
+
+    wheelPositions.forEach(pos => {
+      const wheelHolder = new THREE.Group();
+      wheelHolder.position.set(pos.x, pos.y, pos.z);
+
+      const wheelMesh = new THREE.Mesh(wheelGeo, wheelMat);
+      wheelMesh.rotation.z = Math.PI / 2;
+      wheelMesh.castShadow = true;
+      wheelHolder.add(wheelMesh);
+
+      egoGroup.add(wheelHolder);
+      wheels.push({ group: wheelHolder, mesh: wheelMesh, isFront: pos.isFront });
+    });
+
+    scene.add(egoGroup);
+
+    /* ==========================================================
+       LIDAR POINT CLOUD SIMULATION (64-Beam Raycasting Effect)
+       ========================================================== */
+    const LIDAR_POINT_COUNT = 16000;
+    const lidarGeo = new THREE.BufferGeometry();
+    const lidarPositions = new Float32Array(LIDAR_POINT_COUNT * 3);
+    const lidarColors = new Float32Array(LIDAR_POINT_COUNT * 3);
+
+    const color1 = new THREE.Color(0x00f0ff); // Cyan
+    const color2 = new THREE.Color(0x10b981); // Green
+    const color3 = new THREE.Color(0xf59e0b); // Amber
+    const color4 = new THREE.Color(0xf43f5e); // Red
+
+    for (let i = 0; i < LIDAR_POINT_COUNT; i++) {
+      const idx = i * 3;
+      lidarPositions[idx] = 0;
+      lidarPositions[idx + 1] = 0;
+      lidarPositions[idx + 2] = 0;
+
+      lidarColors[idx] = 0;
+      lidarColors[idx + 1] = 0.94;
+      lidarColors[idx + 2] = 1.0;
+    }
+
+    lidarGeo.setAttribute('position', new THREE.BufferAttribute(lidarPositions, 3));
+    lidarGeo.setAttribute('color', new THREE.BufferAttribute(lidarColors, 3));
+
+    const lidarMaterial = new THREE.PointsMaterial({
+      size: 0.3,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending
+    });
+    const lidarPoints = new THREE.Points(lidarGeo, lidarMaterial);
+    scene.add(lidarPoints);
+
+    /* ==========================================================
+       AUTOPILOT TRAJECTORY PLANNING RIBBON (Bézier Spline)
+       ========================================================== */
+    const TRAJECTORY_POINTS = 50;
+    const trajectoryGeo = new THREE.PlaneGeometry(2.0, 1, 1, TRAJECTORY_POINTS - 1);
+    const trajectoryMat = new THREE.MeshBasicMaterial({
+      color: 0x00f0ff,
+      transparent: true,
+      opacity: 0.45,
+      wireframe: false,
+      side: THREE.DoubleSide
+    });
+    const trajectoryRibbon = new THREE.Mesh(trajectoryGeo, trajectoryMat);
+    trajectoryRibbon.rotation.x = -Math.PI / 2;
+    trajectoryRibbon.position.y = 0.08;
+    scene.add(trajectoryRibbon);
+
+    /* ==========================================================
+       SURROUNDING TRAFFIC (NPC CARS & PEDESTRIANS)
+       ========================================================== */
+    const trafficList = [];
+    const TRAFFIC_MODELS = [
+      { type: 'CAR', color: 0x3b82f6, length: 4.5, width: 2.0, height: 1.4 },
+      { type: 'TRUCK', color: 0xef4444, length: 8.0, width: 2.6, height: 3.2 },
+      { type: 'VAN', color: 0x8b5cf6, length: 5.5, width: 2.2, height: 2.2 },
+      { type: 'SEDAN', color: 0x10b981, length: 4.4, width: 1.9, height: 1.3 }
+    ];
+
+    function createTrafficVehicle(laneIndex, zPos, speed) {
+      const model = TRAFFIC_MODELS[Math.floor(Math.random() * TRAFFIC_MODELS.length)];
+      const group = new THREE.Group();
+
+      const bodyGeo = new THREE.BoxGeometry(model.width, model.height, model.length);
+      const bodyMat = new THREE.MeshStandardMaterial({
+        color: model.color,
+        roughness: 0.3,
+        metalness: 0.6
+      });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.position.y = model.height / 2;
+      body.castShadow = true;
+      group.add(body);
+
+      // 3D Bounding Box (Autonomous AI perception wireframe)
+      const bboxGeo = new THREE.BoxGeometry(model.width + 0.3, model.height + 0.3, model.length + 0.3);
+      const bboxMat = new THREE.MeshBasicMaterial({
+        color: 0x00f0ff,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.8
+      });
+      const bbox = new THREE.Mesh(bboxGeo, bboxMat);
+      bbox.position.y = model.height / 2;
+      group.add(bbox);
+
+      // Taillights
+      const tail = new THREE.Mesh(
+        new THREE.BoxGeometry(model.width * 0.8, 0.1, 0.05),
+        new THREE.MeshBasicMaterial({ color: 0xff0033 })
+      );
+      tail.position.set(0, model.height * 0.4, model.length / 2 + 0.03);
+      group.add(tail);
+
+      group.position.set(LANES[laneIndex], 0, zPos);
+      scene.add(group);
+
+      return {
+        group,
+        bbox,
+        lane: laneIndex,
+        speed: speed, // km/h
+        type: model.type,
+        width: model.width,
+        length: model.length,
+        height: model.height,
+        targetLane: laneIndex
+      };
+    }
+
+    // Populate initial highway traffic
+    trafficList.push(createTrafficVehicle(1, -60, 85));
+    trafficList.push(createTrafficVehicle(2, -120, 100));
+    trafficList.push(createTrafficVehicle(0, -90, 75)); // Slow truck
+    trafficList.push(createTrafficVehicle(3, -150, 115));
+    trafficList.push(createTrafficVehicle(1, 80, 80));
+    trafficList.push(createTrafficVehicle(2, 140, 95));
+
+    // Pedestrians
+    const pedestrians = [];
+    function createPedestrian(x, z) {
+      const group = new THREE.Group();
+      // Body
+      const bodyGeo = new THREE.CylinderGeometry(0.25, 0.25, 1.4);
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.position.y = 0.9;
+      group.add(body);
+
+      // Head
+      const headGeo = new THREE.SphereGeometry(0.2, 16, 16);
+      const headMat = new THREE.MeshStandardMaterial({ color: 0xffedd5 });
+      const head = new THREE.Mesh(headGeo, headMat);
+      head.position.y = 1.7;
+      group.add(head);
+
+      // AI Bounding Box
+      const bboxGeo = new THREE.BoxGeometry(0.8, 1.9, 0.8);
+      const bboxMat = new THREE.MeshBasicMaterial({
+        color: 0xf59e0b,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.9
+      });
+      const bbox = new THREE.Mesh(bboxGeo, bboxMat);
+      bbox.position.y = 0.95;
+      group.add(bbox);
+
+      group.position.set(x, 0, z);
+      scene.add(group);
+
+      return {
+        group,
+        bbox,
+        speedX: 1.2, // Walking across road
+        minX: -ROAD_WIDTH / 2,
+        maxX: ROAD_WIDTH / 2
+      };
+    }
+
+    pedestrians.push(createPedestrian(-10, -220));
+    pedestrians.push(createPedestrian(8, -450));
+
+    /* ==========================================================
+       VEHICLE DYNAMICS & AUTOPILOT STATE
+       ========================================================== */
+    const ego = {
+      x: -2,              // Lane 1
+      z: 0,
+      targetX: -2,
+      targetLane: 1,
+      speed: 96,          // km/h
+      targetSpeed: 100,   // km/h
+      throttle: 42,       // %
+      brake: 0,           // %
+      steeringAngle: 0,   // degrees
+      wheelRotation: 0,
+      isFSD: true,
+      state: 'CRUISING',  // CRUISING, OVERTAKING, BRAKING, YIELDING
+      viewMode: 'chase'   // chase, lidar, bev, cockpit
+    };
+
+    // Keyboard manual controls
+    const keys = {
+      up: false,
+      down: false,
+      left: false,
+      right: false,
+      space: false
+    };
+
+    window.addEventListener('keydown', (e) => {
+      if (['ArrowUp', 'KeyW'].includes(e.code)) keys.up = true;
+      if (['ArrowDown', 'KeyS'].includes(e.code)) keys.down = true;
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.left = true;
+      if (['ArrowRight', 'KeyD'].includes(e.code)) keys.right = true;
+      if (e.code === 'Space') keys.space = true;
+
+      // Disengage FSD automatically if user grabs steering or throttle
+      if (ego.isFSD && (keys.up || keys.down || keys.left || keys.right)) {
+        setFSD(false, true); // User override
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (['ArrowUp', 'KeyW'].includes(e.code)) keys.up = false;
+      if (['ArrowDown', 'KeyS'].includes(e.code)) keys.down = false;
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.left = false;
+      if (['ArrowRight', 'KeyD'].includes(e.code)) keys.right = false;
+      if (e.code === 'Space') keys.space = false;
+    });
+
+    /* ==========================================================
+       AUTOPILOT LOGIC & SENSOR FUSION ENGINE
+       ========================================================== */
+    function updateAutopilot(dt) {
+      if (!ego.isFSD) {
+        // Manual Driving Control
+        if (keys.up) {
+          ego.speed = Math.min(160, ego.speed + 35 * dt);
+          ego.throttle = Math.min(100, ego.throttle + 120 * dt);
+          ego.brake = 0;
+        } else if (keys.down) {
+          ego.speed = Math.max(0, ego.speed - 60 * dt);
+          ego.brake = Math.min(100, ego.brake + 160 * dt);
+          ego.throttle = 0;
+        } else {
+          ego.speed = Math.max(0, ego.speed - 10 * dt); // Coasting friction
+          ego.throttle = Math.max(0, ego.throttle - 80 * dt);
+          ego.brake = Math.max(0, ego.brake - 80 * dt);
+        }
+
+        if (keys.space) {
+          ego.speed = Math.max(0, ego.speed - 90 * dt);
+          ego.brake = 100;
+        }
+
+        if (keys.left) {
+          ego.steeringAngle = Math.max(-25, ego.steeringAngle - 45 * dt);
+          ego.x -= (ego.speed / 15) * dt;
+        } else if (keys.right) {
+          ego.steeringAngle = Math.min(25, ego.steeringAngle + 45 * dt);
+          ego.x += (ego.speed / 15) * dt;
+        } else {
+          ego.steeringAngle *= 0.88; // Return to center
+        }
+
+        ego.state = 'MANUAL OVERRIDE';
+        return;
+      }
+
+      // ----------------------------------------------------
+      // AUTONOMOUS FSD (Full Self-Driving) BEHAVIOR
+      // ----------------------------------------------------
+      // Find lead vehicle in current lane
+      let leadVehicle = null;
+      let minLeadDistance = 9999;
+
+      trafficList.forEach(t => {
+        // Check if car is in same lane ahead of us
+        const dX = Math.abs(t.group.position.x - ego.x);
+        const dZ = ego.z - t.group.position.z; // distance ahead (we travel towards -Z)
+        if (dX < 2.2 && dZ > 0 && dZ < minLeadDistance) {
+          minLeadDistance = dZ;
+          leadVehicle = t;
+        }
+      });
+
+      // Check for pedestrians ahead
+      let emergencyStop = false;
+      pedestrians.forEach(p => {
+        const dZ = ego.z - p.group.position.z;
+        const dX = Math.abs(p.group.position.x - ego.x);
+        if (dZ > 0 && dZ < 45 && dX < 3.0) {
+          emergencyStop = true;
+          leadVehicle = { speed: 0 };
+          minLeadDistance = dZ;
+        }
+      });
+
+      // Adaptive Cruise Control (ACC) & Headway Regulation
+      const targetFollowDist = Math.max(18, (ego.speed / 3.6) * 1.6); // 1.6s time headway
+
+      if (leadVehicle && minLeadDistance < targetFollowDist * 1.8) {
+        // Lead vehicle detected!
+        if (minLeadDistance < 20 || emergencyStop) {
+          // Emergency Braking / Sharp Yield
+          ego.state = emergencyStop ? 'PEDESTRIAN YIELD' : 'AEB EMERGENCY BRAKE';
+          ego.targetSpeed = Math.min(leadVehicle.speed * 0.6, 20);
+          ego.brake = 85;
+          ego.throttle = 0;
+          audio.playProximityBeep(1.0);
+        } else {
+          // Follow lead vehicle or plan lane change
+          ego.state = 'FOLLOWING LEAD';
+          ego.targetSpeed = leadVehicle.speed;
+          ego.brake = (minLeadDistance < targetFollowDist) ? 35 : 0;
+          ego.throttle = (minLeadDistance > targetFollowDist) ? 30 : 0;
+
+          // Autonomous Lane Change (Overtake slower traffic)
+          if (leadVehicle.speed < 85 && minLeadDistance < 40 && ego.targetLane === ego.lane) {
+            // Try left lane first, then right lane
+            const canLeft = ego.lane > 0;
+            const canRight = ego.lane < LANES.length - 1;
+
+            if (canLeft) {
+              ego.targetLane = ego.lane - 1;
+              ego.state = 'OVERTAKING (LANE CHANGE)';
+            } else if (canRight) {
+              ego.targetLane = ego.lane + 1;
+              ego.state = 'OVERTAKING (LANE CHANGE)';
+            }
+          }
+        }
+      } else {
+        // Clear highway cruise
+        ego.state = 'CRUISING SPEED';
+        ego.targetSpeed = 105;
+        ego.brake = 0;
+        ego.throttle = 45;
+      }
+
+      // Smooth PID speed adjustment
+      const speedError = ego.targetSpeed - ego.speed;
+      ego.speed += speedError * 1.5 * dt;
+
+      // Smooth Lane Change & Steering
+      ego.lane = LANES.findIndex(lx => Math.abs(lx - ego.x) < 2);
+      if (ego.lane === -1) ego.lane = 1;
+      ego.targetX = LANES[ego.targetLane] || LANES[1];
+
+      const lateralError = ego.targetX - ego.x;
+      const targetSteer = THREE.MathUtils.clamp(lateralError * 6.0, -18, 18);
+      ego.steeringAngle += (targetSteer - ego.steeringAngle) * 4.0 * dt;
+
+      ego.x += (ego.speed / 3.6) * Math.sin((ego.steeringAngle * Math.PI) / 180) * dt * 0.8;
+    }
+
+    /* ==========================================================
+       UPDATE LIDAR SCANNER & 3D POINT CLOUD
+       ========================================================== */
+    let lidarAngle = 0;
+    function updateLiDAR(dt) {
+      lidarAngle += dt * 25; // 360 rotation
+      lidarPuck.rotation.y = lidarAngle;
+      lidarHalo.scale.setScalar(1 + Math.sin(Date.now() * 0.008) * 0.15);
+
+      const positions = lidarGeo.attributes.position.array;
+      const colors = lidarGeo.attributes.color.array;
+
+      // Dynamic sampling around ego car, road, and nearby vehicles
+      for (let i = 0; i < LIDAR_POINT_COUNT; i++) {
+        const idx = i * 3;
+        // Ring distribution + ray bounce
+        const beam = (i % 64);
+        const theta = ((i / 64) * 0.05 + lidarAngle) % (Math.PI * 2);
+        const elevation = -0.15 + (beam / 64) * 0.3; // -8.5° to +15°
+
+        const maxDist = 45 + Math.random() * 5;
+        let dist = 8 + Math.random() * maxDist;
+
+        // Ground hit simulation
+        let py = 1.6 + Math.sin(elevation) * dist;
+        if (py < 0.05) {
+          py = 0.05 + Math.random() * 0.05;
+          dist = Math.abs(1.6 / Math.sin(elevation));
+        }
+
+        const px = ego.x + Math.cos(theta) * dist * Math.cos(elevation);
+        const pz = ego.z - Math.sin(theta) * dist * Math.cos(elevation);
+
+        positions[idx] = px;
+        positions[idx + 1] = py;
+        positions[idx + 2] = pz;
+
+        // Color by elevation / intensity
+        const normY = THREE.MathUtils.clamp(py / 3.5, 0, 1);
+        colors[idx] = THREE.MathUtils.lerp(0.0, 1.0, normY);
+        colors[idx + 1] = THREE.MathUtils.lerp(0.94, 0.2, normY);
+        colors[idx + 2] = THREE.MathUtils.lerp(1.0, 0.3, normY);
+      }
+
+      lidarGeo.attributes.position.needsUpdate = true;
+      lidarGeo.attributes.color.needsUpdate = true;
+    }
+
+    /* ==========================================================
+       UPDATE AUTOPILOT TRAJECTORY RIBBON
+       ========================================================== */
+    function updateTrajectoryRibbon() {
+      const pos = trajectoryGeo.attributes.position;
+      const lookAhead = 80;
+
+      for (let i = 0; i < TRAJECTORY_POINTS; i++) {
+        const t = i / (TRAJECTORY_POINTS - 1);
+        const zDist = t * lookAhead;
+        // Cubic polynomial curvature
+        const curveX = ego.x + (ego.targetX - ego.x) * Math.pow(t, 1.5);
+
+        // Left and right vertices of ribbon
+        const idxLeft = i * 2;
+        const idxRight = i * 2 + 1;
+
+        pos.setXYZ(idxLeft, curveX - 0.9, 0.08, ego.z - zDist);
+        pos.setXYZ(idxRight, curveX + 0.9, 0.08, ego.z - zDist);
+      }
+      pos.needsUpdate = true;
+    }
+
+    /* ==========================================================
+       SCENARIO PRESETS
+       ========================================================== */
+    function loadScenario(idx) {
+      document.querySelectorAll('.scenario-btn').forEach((b, i) => {
+        b.classList.toggle('active', i === idx);
+      });
+
+      switch (idx) {
+        case 0: // Highway Cruise & Overtake
+          ego.speed = 95;
+          ego.targetSpeed = 110;
+          ego.targetLane = 1;
+          trafficList[0].group.position.set(LANES[1], 0, ego.z - 50);
+          trafficList[0].speed = 70; // Slower truck causing overtake
+          showToast('Scenario: Highway Cruise & Auto Overtake');
+          break;
+        case 1: // Urban Crosswalk & Yield
+          ego.speed = 50;
+          ego.targetSpeed = 50;
+          pedestrians[0].group.position.set(-6, 0, ego.z - 35);
+          showToast('Scenario: Crosswalk & Pedestrian Yield');
+          break;
+        case 2: // Sudden Cut-In & AEB
+          ego.speed = 100;
+          trafficList[1].group.position.set(LANES[2], 0, ego.z - 25);
+          trafficList[1].group.position.x = LANES[1]; // Cut into ego lane!
+          trafficList[1].speed = 40;
+          showToast('Scenario: Sudden Cut-In & AEB Activated!');
+          break;
+        case 3: // Dense Fog & Sensor Stress
+          scene.fog.density = 0.025;
+          document.getElementById('stat-conf').textContent = '94.2% (LiDAR Primed)';
+          showToast('Scenario: Dense Fog - Camera Degraded, Pure LiDAR Active');
+          setTimeout(() => { scene.fog.density = 0.007; }, 8000);
+          break;
+      }
+    }
+
+    /* ==========================================================
+       VIEW MODE CONTROLS
+       ========================================================== */
+    function setViewMode(mode) {
+      ego.viewMode = mode;
+      document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.toLowerCase().includes(mode));
+      });
+
+      if (mode === 'lidar') {
+        scene.background.setHex(0x020306);
+        road.material.wireframe = true;
+        buildingsGroup.visible = false;
+      } else {
+        scene.background.setHex(0x050811);
+        road.material.wireframe = false;
+        buildingsGroup.visible = true;
+      }
+
+      showToast(`Camera: ${mode.toUpperCase()} View`);
+    }
+
+    function toggleFSD() {
+      setFSD(!ego.isFSD);
+    }
+
+    function setFSD(active, isOverride = false) {
+      ego.isFSD = active;
+      const btn = document.getElementById('btn-toggle-fsd');
+      const pill = document.getElementById('fsd-status-pill');
+      const stateText = document.getElementById('fsd-state-text');
+      const btnLabel = document.getElementById('fsd-btn-label');
+      const manualHint = document.getElementById('manual-hint');
+
+      if (active) {
+        btn.classList.add('active');
+        btnLabel.textContent = 'AUTOPILOT ON';
+        pill.style.background = 'rgba(16, 185, 129, 0.15)';
+        pill.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+        pill.style.color = 'var(--emerald)';
+        stateText.textContent = 'FSD V12.8 ACTIVE';
+        manualHint.style.display = 'none';
+        showToast('Autonomous Full Self-Driving Engaged');
+        audio.playFSDChime(true);
+      } else {
+        btn.classList.remove('active');
+        btnLabel.textContent = 'AUTOPILOT OFF';
+        pill.style.background = 'rgba(244, 63, 94, 0.15)';
+        pill.style.borderColor = 'rgba(244, 63, 94, 0.3)';
+        pill.style.color = 'var(--rose)';
+        stateText.textContent = isOverride ? 'MANUAL OVERRIDE' : 'MANUAL DRIVE';
+        manualHint.style.display = 'flex';
+        showToast('Autopilot Disengaged - Driver in Control');
+        audio.playFSDChime(false);
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast-banner');
+      const text = document.getElementById('toast-text');
+      text.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2800);
+    }
+
+    /* ==========================================================
+       MAIN ANIMATION & SIMULATION LOOP
+       ========================================================= */
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.1);
+
+      // 1. Update Autopilot & Dynamics
+      updateAutopilot(dt);
+
+      // 2. Advance Ego Vehicle along Z
+      const displacement = (ego.speed / 3.6) * dt;
+      ego.z -= displacement;
+      egoGroup.position.set(ego.x, 0, ego.z);
+      egoGroup.rotation.y = -(ego.steeringAngle * Math.PI) / 180 * 0.4;
+
+      // Rotate wheels
+      ego.wheelRotation += (displacement / 0.38);
+      wheels.forEach(w => {
+        w.mesh.rotation.x = ego.wheelRotation;
+        if (w.isFront) {
+          w.group.rotation.y = -(ego.steeringAngle * Math.PI) / 180;
+        }
+      });
+
+      // 3. Update Traffic Vehicles
+      trafficList.forEach(t => {
+        const tDisp = (t.speed / 3.6) * dt;
+        t.group.position.z -= tDisp;
+
+        // Loop traffic if too far behind or ahead
+        if (t.group.position.z > ego.z + 100) {
+          t.group.position.z = ego.z - 350 - Math.random() * 100;
+        } else if (t.group.position.z < ego.z - 450) {
+          t.group.position.z = ego.z + 50 + Math.random() * 50;
+        }
+      });
+
+      // 4. Update Pedestrians
+      pedestrians.forEach(p => {
+        p.group.position.x += p.speedX * dt;
+        if (p.group.position.x > p.maxX || p.group.position.x < p.minX) {
+          p.speedX *= -1;
+        }
+        // Reposition pedestrian ahead of car if passed
+        if (p.group.position.z > ego.z + 50) {
+          p.group.position.z = ego.z - 300 - Math.random() * 150;
+        }
+      });
+
+      // 5. Infinite Road & Scenery Looping
+      if (ego.z < road.position.z - 100) {
+        road.position.z -= 100;
+        gridHelper.position.z -= 100;
+      }
+
+      // 6. Update LiDAR & Trajectory
+      updateLiDAR(dt);
+      updateTrajectoryRibbon();
+
+      // 7. Update Camera Views
+      if (ego.viewMode === 'chase') {
+        const targetCamPos = new THREE.Vector3(ego.x, 3.8, ego.z + 8.5);
+        camera.position.lerp(targetCamPos, 0.1);
+        camera.lookAt(ego.x, 1.2, ego.z - 20);
+      } else if (ego.viewMode === 'cockpit') {
+        camera.position.set(ego.x, 1.35, ego.z - 0.3);
+        camera.lookAt(ego.x, 1.35, ego.z - 40);
+      } else if (ego.viewMode === 'bev') {
+        camera.position.set(ego.x, 48, ego.z - 15);
+        camera.lookAt(ego.x, 0, ego.z - 15);
+      } else if (ego.viewMode === 'lidar') {
+        camera.position.lerp(new THREE.Vector3(ego.x + 12, 14, ego.z + 15), 0.08);
+        camera.lookAt(ego.x, 1.5, ego.z - 10);
+      }
+
+      // 8. Update Audio Synthesizer
+      audio.updateMotor(ego.speed, ego.throttle);
+
+      // 9. Update UI Telemetry Readouts
+      document.getElementById('speed-val').textContent = Math.round(ego.speed);
+      document.getElementById('steer-val').textContent = (ego.steeringAngle >= 0 ? '+' : '') + ego.steeringAngle.toFixed(1) + '°';
+      document.getElementById('throttle-val').textContent = Math.round(ego.throttle) + '%';
+      document.getElementById('brake-val').textContent = Math.round(ego.brake) + '%';
+      document.getElementById('fsd-state-text').textContent = ego.isFSD ? `FSD: ${ego.state}` : 'MANUAL DRIVE';
+
+      renderer.render(scene, camera);
+    }
+
+    // Window Resize Handler
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Start Simulation
+    animate();
+  </script>
+</body>
+</html>
