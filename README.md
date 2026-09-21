@@ -1,36 +1,35 @@
-# 🚗 ApexAutopilot | 3D Autonomous Vehicle LiDAR & Vision Perception Simulator
+# 🚗 ApexAutopilot 2.0 | 3D Autonomous Vehicle LiDAR, Vision & V2X Simulator
 
-> **Next-Generation 3D Autonomous Driving Perception & Sensor Fusion Simulator** featuring real-time 64-beam LiDAR point cloud generation, Extended Kalman Filter (EKF) tracking, 3D bounding box detection, adaptive trajectory planning, and full mission scenario control.
+> **Next-Generation 3D Autonomous Driving Perception & Sensor Fusion Simulator** featuring real-time 64-beam LiDAR point cloud generation, Semantic Segmentation, V2X Smart Traffic Light Intersections, God-Mode Click-to-Spawn Hazards, Drive Profiles (Chill, Standard, Mad Max), and Full Mission Scenario Control.
 
 ![ApexAutopilot Banner](https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1600&q=80)
 
 ---
 
-## 🌟 Highlights & Key Features
+## 🌟 What's New in 2.0
 
-- **64-Beam LiDAR Point Cloud Engine**:
-  - Real-time 360° raycasting with 16,000+ points color-coded by elevation (Z-axis) and intensity.
-  - Multi-beam scan simulation reproducing Velodyne / Luminar LiDAR sensor physics.
-- **AI Perception & 3D Bounding Box Tracking**:
-  - 3D bounding boxes around surrounding traffic (Cars, Trucks, Vans) and pedestrians with real-time classification & confidence scores.
-- **Autonomous Trajectory Planner (Bézier Ribbon)**:
-  - Real-time cubic spline polynomial trajectory ribbon projecting the vehicle's planned path.
-  - Adaptive Cruise Control (ACC), automatic lane changing for overtaking slower traffic, and Emergency Braking (AEB).
-- **Multiple Sensor & Camera Modes**:
-  - **Chase View**: Cinematic third-person vehicle following camera.
-  - **LiDAR Only Mode**: Pitch-black developer view isolating pure point cloud and 3D wireframe bounding boxes.
-  - **Bird's Eye View (BEV)**: Top-down sensor occupancy grid.
-  - **Cockpit / Windshield View**: Real-time driver perception view.
-- **Interactive Scenarios**:
-  - `Highway Cruise & Overtake`: High-speed 110 km/h highway navigation with automatic lane changes.
-  - `Urban Crosswalk & Yield`: City street navigation with crossing pedestrians and yield logic.
-  - `Sudden Cut-In & AEB`: Sudden rogue vehicle lane cut-in triggering emergency braking.
-  - `Dense Fog & Sensor Degradation`: Simulated zero-visibility fog testing sensor fusion resiliency.
-- **Synthesized Web Audio Engine**:
-  - Electric dual-motor whine modulated by speed and throttle.
-  - Ultrasonic proximity alert chimes.
-  - Tesla-style two-tone Autopilot engage/disengage sound effects.
-- **Zero Dependencies**: Pure HTML5, WebGL, Three.js, and Web Audio API.
+1. **🚦 V2X Traffic Light & Smart Intersection Autonomy**:
+   - 3D overhead gantry with synchronized 3-color traffic signals (Red, Yellow, Green).
+   - Autonomous vehicle reads 5.8 GHz V2X signal: decelerates smoothly to a stop on Red behind the stop line, holds position, and accelerates on Green.
+
+2. **🎯 God Mode: Click-to-Spawn Dynamic Hazards**:
+   - Click anywhere on the 3D road to spawn immediate traffic hazards (construction cones, stalled vehicles).
+   - Watch the FSD neural path planner instantly recalculate the Bézier ribbon to steer around the hazard in real time!
+
+3. **🎨 Semantic Segmentation AI Mode**:
+   - View mode classifying scene components by color masks: Drivable Road (Purple), Vehicles (Blue), Pedestrians (Orange), Infrastructure (Gray), and Sky (Void Black).
+
+4. **⚡ Configurable FSD Drive Profiles**:
+   - **CHILL**: 80 km/h cruising, conservative 2.2s headway, gentle braking.
+   - **STANDARD**: 100 km/h balanced cruising, 1.6s headway, automatic overtaking.
+   - **MAD MAX**: 130 km/h aggressive highway cruising, tight 1.0s headway, rapid lane changes.
+
+5. **🌧️ Cyber Rain & Wet Surface Physics**:
+   - 3D rain particle engine with wet asphalt specular reflections and reduced tire friction.
+
+6. **🔊 Turn Signal Audio & Blind Spot Detection**:
+   - Animated amber side mirror and body turn indicators.
+   - Synthesized rhythmic click-clack turn signal audio via Web Audio API during autonomous lane changes.
 
 ---
 
@@ -45,12 +44,14 @@ Experience the live interactive simulator directly in your browser:
 
 | Control | Action |
 | :--- | :--- |
-| **`W` / `↑`** | Accelerate (Throttle) |
+| **`Click on Road`** | Spawn Dynamic Hazard (Traffic Cone) |
+| **`W` / `↑`** | Accelerate (Manual Throttle) |
 | **`S` / `↓`** | Brake / Decelerate |
 | **`A` / `D` or `←` / `→`** | Steer Left / Right |
 | **`SPACE`** | Emergency Handbrake |
 | **`AUTOPILOT ON/OFF`** | Toggle Autonomous Full Self-Driving (FSD) |
-| **`AUDIO FX`** | Toggle Web Audio Synthesizer |
+| **`CLEAR NIGHT / CYBER RAIN`**| Toggle Rain Particle Weather |
+| **`AUDIO FX`** | Toggle Web Audio Synthesizer (Motor Whine, Blinkers, Chimes) |
 
 ---
 
@@ -58,7 +59,7 @@ Experience the live interactive simulator directly in your browser:
 
 - **Graphics**: WebGL, Three.js (r128), OrbitControls
 - **Mathematics & Physics**: Keplerian & vehicle kinematics, Bézier spline polynomials, Euler integration
-- **Audio**: Web Audio API (Oscillators, BiquadFilters, GainNodes)
+- **Audio**: Web Audio API (Dual-motor whine, turn signal tick, proximity beeps, FSD chimes)
 - **UI & Design**: Cyberpunk dark HUD, JetBrains Mono, Outfit font, Lucide Icons
 
 ---
