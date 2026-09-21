@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ApexAutopilot 2.0 | 3D Autonomous Vehicle LiDAR, Vision & V2X Simulator</title>
-  <meta name="description" content="Next-Generation 3D Autonomous Driving Perception Simulator featuring 64-beam LiDAR point cloud generation, Semantic Segmentation, V2X traffic light autonomy, click-to-spawn dynamic obstacles, and Bézier trajectory planning.">
+  <title>ApexAutopilot 3.0 | Intelligent Self-Driving, Active Collision Avoidance & AI Alerts</title>
+  <meta name="description" content="Next-Generation Autonomous Vehicle Platform featuring real-time proactive collision avoidance, intelligent multi-lane gap overtaking, forward collision warnings (FCW), blind-spot monitoring (BSM), and voice synthesizer alerts.">
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -59,6 +59,30 @@
       cursor: crosshair;
     }
 
+    /* Danger Flashing Vignette (When FCW or Collision Alert active) */
+    .danger-vignette {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+      box-shadow: inset 0 0 100px rgba(244, 63, 94, 0.85);
+      opacity: 0;
+      transition: opacity 0.15s ease-in-out;
+    }
+
+    .danger-vignette.active {
+      opacity: 1;
+      animation: dangerPulse 0.4s infinite alternate;
+    }
+
+    @keyframes dangerPulse {
+      0% { opacity: 0.4; }
+      100% { opacity: 0.95; }
+    }
+
     /* UI Overlay Layer */
     .hud-layer {
       position: absolute;
@@ -71,7 +95,7 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 18px;
+      padding: 16px;
     }
 
     .interactive {
@@ -207,11 +231,11 @@
       justify-content: space-between;
       align-items: flex-start;
       margin-top: 14px;
-      gap: 18px;
+      gap: 16px;
       flex: 1;
     }
 
-    /* Left Panel: Perception & Sensor Fusion */
+    /* Left Panel: Perception & Safety Warnings */
     .panel-left {
       width: 330px;
       display: flex;
@@ -241,6 +265,63 @@
       margin-bottom: 10px;
       padding-bottom: 6px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    /* Active Safety & Alert Status Card */
+    .safety-alert-box {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: all 0.3s ease;
+    }
+
+    .safety-alert-box.danger {
+      background: rgba(244, 63, 94, 0.2);
+      border-color: var(--rose);
+      box-shadow: 0 0 20px rgba(244, 63, 94, 0.4);
+    }
+
+    .safety-alert-box.warning {
+      background: rgba(245, 158, 11, 0.18);
+      border-color: var(--amber);
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+    }
+
+    .safety-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+    }
+
+    .safety-status-text {
+      font-size: 13px;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--emerald);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .safety-alert-box.danger .safety-status-text {
+      color: var(--rose);
+      animation: alertBlink 0.5s infinite alternate;
+    }
+
+    .safety-alert-box.warning .safety-status-text {
+      color: var(--amber);
+    }
+
+    @keyframes alertBlink {
+      0% { transform: scale(0.98); opacity: 0.8; }
+      100% { transform: scale(1.02); opacity: 1; }
     }
 
     .metric-row {
@@ -343,7 +424,7 @@
       color: var(--cyan);
     }
 
-    /* Right Panel: Mission Scenarios & Views */
+    /* Right Panel: Scenarios & Obstacle Injection */
     .panel-right {
       width: 320px;
       display: flex;
@@ -450,6 +531,42 @@
       box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
     }
 
+    /* Giant Center Warning Banner (FCW / AEB / Obstacle Evasion) */
+    .center-warning-banner {
+      position: absolute;
+      top: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(244, 63, 94, 0.9);
+      border: 2px solid #fff;
+      color: #fff;
+      padding: 12px 32px;
+      border-radius: 12px;
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 0 35px rgba(244, 63, 94, 0.8);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 50;
+      letter-spacing: 1px;
+    }
+
+    .center-warning-banner.show {
+      opacity: 1;
+      animation: bannerShake 0.3s infinite;
+    }
+
+    @keyframes bannerShake {
+      0%, 100% { transform: translateX(-50%) rotate(0deg); }
+      25% { transform: translateX(-52%) rotate(-0.5deg); }
+      75% { transform: translateX(-48%) rotate(0.5deg); }
+    }
+
     /* Bottom HUD Bar: Telemetry & Drive Controls */
     .hud-bottom {
       display: flex;
@@ -530,10 +647,10 @@
       box-shadow: 0 0 10px var(--cyan);
     }
 
-    /* Turn Blinkers HUD */
+    /* Turn Blinkers & Blind Spot Alert HUD */
     .turn-signals-hud {
       display: flex;
-      gap: 16px;
+      gap: 14px;
       align-items: center;
       margin-left: 8px;
     }
@@ -548,6 +665,27 @@
       color: var(--amber);
       text-shadow: 0 0 12px var(--amber);
       animation: blink 0.6s infinite;
+    }
+
+    .bsm-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      border: 1px solid transparent;
+    }
+
+    .bsm-indicator.active {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--amber);
+      border-color: var(--amber);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
     }
 
     @keyframes blink {
@@ -594,34 +732,10 @@
       font-weight: 700;
     }
 
-    /* Manual Driving Hint */
-    .manual-controls-hint {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      background: rgba(12, 17, 26, 0.75);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
-      padding: 8px 14px;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-
-    .key-badge {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
-      padding: 2px 5px;
-      color: #fff;
-      font-weight: 700;
-    }
-
-    /* Notification Banner */
+    /* Notification Toast */
     .toast-banner {
       position: absolute;
-      top: 85px;
+      top: 80px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(0, 240, 255, 0.18);
@@ -663,6 +777,9 @@
 </head>
 <body>
 
+  <!-- Danger Vignette -->
+  <div class="danger-vignette" id="danger-vignette"></div>
+
   <!-- 3D WebGL Canvas -->
   <div id="webgl-canvas"></div>
 
@@ -675,8 +792,8 @@
         <div class="brand-logo">A</div>
         <div>
           <div class="brand-title">
-            ApexAutopilot 2.0
-            <span class="brand-badge">LiDAR • Vision • V2X</span>
+            ApexAutopilot 3.0
+            <span class="brand-badge">Auto-Evasion • AI Voice Alerts</span>
           </div>
         </div>
       </div>
@@ -684,7 +801,7 @@
       <!-- Autopilot Status Pill -->
       <div class="status-pill" id="fsd-status-pill">
         <div class="status-dot"></div>
-        <span id="fsd-state-text">FSD V12.8 ACTIVE</span>
+        <span id="fsd-state-text">FSD V13.0 ACTIVE</span>
       </div>
 
       <!-- Actions -->
@@ -692,6 +809,11 @@
         <button class="btn-action active" id="btn-toggle-fsd" onclick="toggleFSD()">
           <i data-lucide="zap"></i>
           <span id="fsd-btn-label">AUTOPILOT ON</span>
+        </button>
+
+        <button class="btn-action active" id="btn-toggle-voice" onclick="toggleVoice()">
+          <i data-lucide="mic" id="voice-icon"></i>
+          <span id="voice-label">VOICE ALERTS: ON</span>
         </button>
 
         <button class="btn-action" id="btn-toggle-weather" onclick="toggleWeather()">
@@ -713,8 +835,24 @@
 
     <!-- Center Workspace -->
     <div class="hud-center">
-      <!-- Left Panel: Sensor Fusion & Perception -->
+      <!-- Left Panel: Perception & Safety Warnings -->
       <aside class="panel-left interactive">
+        <!-- Safety Alert & Active Hazard Card -->
+        <div class="card">
+          <div class="card-title">
+            <i data-lucide="shield-alert"></i> Active Safety & Collision Warning
+          </div>
+          <div class="safety-alert-box" id="safety-alert-box">
+            <div class="safety-header">
+              <span>SAFETY SYSTEM STATUS</span>
+              <span id="fcw-badge" style="font-size: 10px; color: var(--emerald);">NOMINAL</span>
+            </div>
+            <div class="safety-status-text" id="safety-status-text">
+              <i data-lucide="check-circle-2"></i> ALL CLEAR - NO COLLISION HAZARD
+            </div>
+          </div>
+        </div>
+
         <!-- Sensor Cluster Card -->
         <div class="card">
           <div class="card-title">
@@ -759,23 +897,23 @@
           </div>
           <div class="metric-row">
             <span class="metric-label"><i data-lucide="activity"></i> Inference Latency</span>
-            <span class="metric-val highlight" id="stat-latency">5.4 ms</span>
+            <span class="metric-val highlight" id="stat-latency">4.8 ms</span>
           </div>
           <div class="metric-row">
             <span class="metric-label"><i data-lucide="shield-check"></i> Perception Confidence</span>
-            <span class="metric-val highlight" id="stat-conf">99.6%</span>
+            <span class="metric-val highlight" id="stat-conf">99.8%</span>
           </div>
           <div class="metric-row">
             <span class="metric-label"><i data-lucide="box"></i> 3D Tracked Objects</span>
-            <span class="metric-val" id="stat-boxes">16 Tracked</span>
+            <span class="metric-val" id="stat-boxes">18 Tracked</span>
           </div>
           <div class="metric-row">
-            <span class="metric-label"><i data-lucide="git-commit"></i> Lane Polynomial</span>
-            <span class="metric-val" style="color: var(--amber);">Cubic Spline (Fit)</span>
+            <span class="metric-label"><i data-lucide="git-commit"></i> Path Optimizer</span>
+            <span class="metric-val" style="color: var(--cyan);">Dynamic Evasion</span>
           </div>
           <div class="metric-row">
-            <span class="metric-label"><i data-lucide="navigation-2"></i> Path Plan Horizon</span>
-            <span class="metric-val">120 Meters</span>
+            <span class="metric-label"><i data-lucide="navigation-2"></i> Forward TTC Horizon</span>
+            <span class="metric-val" id="stat-ttc" style="color: var(--emerald);">TTC: Safe (&gt;4.0s)</span>
           </div>
         </div>
 
@@ -792,7 +930,7 @@
         </div>
       </aside>
 
-      <!-- Right Panel: Scenarios & Presets -->
+      <!-- Right Panel: Scenarios & Obstacle Injection -->
       <aside class="panel-right interactive">
         <div class="card">
           <div class="card-title">
@@ -802,12 +940,20 @@
           <button class="scenario-btn active" onclick="loadScenario(0)">
             <div class="scenario-icon"><i data-lucide="fast-forward"></i></div>
             <div class="scenario-text">
-              <div class="scenario-title">Highway Cruise & Overtake</div>
-              <div class="scenario-desc">High-speed cruise, radar headway & auto lane-change</div>
+              <div class="scenario-title">Highway Cruise & Auto Overtake</div>
+              <div class="scenario-desc">Intelligent gap detection and proactive evasion</div>
             </div>
           </button>
 
           <button class="scenario-btn" onclick="loadScenario(1)">
+            <div class="scenario-icon"><i data-lucide="alert-octagon"></i></div>
+            <div class="scenario-text">
+              <div class="scenario-title">Sudden Brake Check & Evasion</div>
+              <div class="scenario-desc">Lead car slams brakes; ego executes high-speed swerve</div>
+            </div>
+          </button>
+
+          <button class="scenario-btn" onclick="loadScenario(2)">
             <div class="scenario-icon"><i data-lucide="traffic-cone"></i></div>
             <div class="scenario-text">
               <div class="scenario-title">V2X Traffic Light & Intersection</div>
@@ -815,40 +961,38 @@
             </div>
           </button>
 
-          <button class="scenario-btn" onclick="loadScenario(2)">
+          <button class="scenario-btn" onclick="loadScenario(3)">
             <div class="scenario-icon"><i data-lucide="users"></i></div>
             <div class="scenario-text">
-              <div class="scenario-title">Urban Crosswalk & Yield</div>
-              <div class="scenario-desc">Pedestrian tracking & crosswalk stopping</div>
-            </div>
-          </button>
-
-          <button class="scenario-btn" onclick="loadScenario(3)">
-            <div class="scenario-icon"><i data-lucide="alert-triangle"></i></div>
-            <div class="scenario-text">
-              <div class="scenario-title">Sudden Cut-In & AEB</div>
-              <div class="scenario-desc">Emergency braking & evasive trajectory steering</div>
+              <div class="scenario-title">Urban Crosswalk & Pedestrian Yield</div>
+              <div class="scenario-desc">Pedestrian tracking & voice warning stop</div>
             </div>
           </button>
         </div>
 
-        <!-- God Mode / Interactive Obstacle Spawner -->
+        <!-- God Mode / Dynamic Obstacle Spawner -->
         <div class="card">
           <div class="card-title">
-            <i data-lucide="crosshair"></i> God Mode: Dynamic Hazards
+            <i data-lucide="crosshair"></i> God Mode: Inject Obstacles
           </div>
           <div class="spawn-box">
             <div class="spawn-hint">
               <i data-lucide="mouse-pointer-click"></i>
-              <span>Click anywhere on road to drop hazard</span>
+              <span>Click road to drop obstacle & test evasion</span>
             </div>
             <button class="btn-spawn" onclick="spawnHazardAhead()">
               <i data-lucide="plus-circle"></i>
-              <span>DROP HAZARD 40M AHEAD</span>
+              <span>DROP HAZARD 35M AHEAD</span>
             </button>
           </div>
         </div>
       </aside>
+    </div>
+
+    <!-- Center Giant Warning Banner -->
+    <div class="center-warning-banner" id="center-warning">
+      <i data-lucide="alert-triangle" style="font-size: 24px;"></i>
+      <span id="center-warning-text">⚠️ FORWARD COLLISION WARNING: BRAKING</span>
     </div>
 
     <!-- Notification Toast -->
@@ -880,20 +1024,13 @@
           <div>Brake: <strong id="brake-val" style="color: var(--rose);">0%</strong></div>
         </div>
 
-        <!-- Turn Signal Indicators -->
+        <!-- Turn Blinkers & Blind Spot HUD -->
         <div class="turn-signals-hud">
           <div class="turn-arrow" id="turn-left"><i data-lucide="arrow-left-circle"></i></div>
+          <div class="bsm-indicator" id="bsm-left">BSM L</div>
+          <div class="bsm-indicator" id="bsm-right">BSM R</div>
           <div class="turn-arrow" id="turn-right"><i data-lucide="arrow-right-circle"></i></div>
         </div>
-      </div>
-
-      <!-- Manual Driving Hint (if FSD disabled) -->
-      <div class="manual-controls-hint interactive" id="manual-hint" style="display: none;">
-        <span>Manual Drive:</span>
-        <span><span class="key-badge">W</span> / <span class="key-badge">↑</span> Gas</span>
-        <span><span class="key-badge">S</span> / <span class="key-badge">↓</span> Brake</span>
-        <span><span class="key-badge">A</span> / <span class="key-badge">D</span> Steer</span>
-        <span><span class="key-badge">SPACE</span> Handbrake</span>
       </div>
 
       <!-- View Selector -->
@@ -919,12 +1056,69 @@
   </div>
 
   <script>
-    // Initialize Lucide Icons
     lucide.createIcons();
 
     /* ==========================================================
-       AUDIO SYNTHESIS ENGINE (Web Audio API)
-       Electric Motor Whine + Proximity Beep + FSD Chimes + Blinkers
+       VOICE SYNTHESIZER & AUDIO ALERTS (Web Speech & Web Audio)
+       ========================================================== */
+    class VoiceAlertEngine {
+      constructor() {
+        this.enabled = true;
+        this.lastSpoken = '';
+        this.lastSpokenTime = 0;
+      }
+
+      speak(text, priority = false) {
+        if (!this.enabled || !window.speechSynthesis) return;
+        const now = Date.now();
+        // Prevent duplicate speech spam unless priority
+        if (!priority && text === this.lastSpoken && now - this.lastSpokenTime < 4000) return;
+        if (!priority && now - this.lastSpokenTime < 2500) return;
+
+        this.lastSpoken = text;
+        this.lastSpokenTime = now;
+
+        window.speechSynthesis.cancel(); // Cancel any lingering speech
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.15;
+        utterance.pitch = 1.05;
+        utterance.volume = 1.0;
+
+        // Try to select an English female or clear voice
+        const voices = window.speechSynthesis.getVoices();
+        const preferred = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Female') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Natural')));
+        if (preferred) utterance.voice = preferred;
+
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    const voiceAI = new VoiceAlertEngine();
+
+    function toggleVoice() {
+      voiceAI.enabled = !voiceAI.enabled;
+      const btn = document.getElementById('btn-toggle-voice');
+      const label = document.getElementById('voice-label');
+      const icon = document.getElementById('voice-icon');
+
+      if (voiceAI.enabled) {
+        btn.classList.add('active');
+        label.textContent = 'VOICE ALERTS: ON';
+        icon.setAttribute('data-lucide', 'mic');
+        voiceAI.speak('Autonomous Voice Alerts Active', true);
+        showToast('Voice Synthesizer: ACTIVATED');
+      } else {
+        btn.classList.remove('active');
+        label.textContent = 'VOICE ALERTS: OFF';
+        icon.setAttribute('data-lucide', 'mic-off');
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        showToast('Voice Synthesizer: MUTED');
+      }
+      lucide.createIcons();
+    }
+
+    /* ==========================================================
+       SYNTHESIZED AUDIO ENGINE (Web Audio API)
        ========================================================== */
     class AudioEngine {
       constructor() {
@@ -935,6 +1129,7 @@
         this.subGain = null;
         this.enabled = false;
         this.lastBlinkerTime = 0;
+        this.lastAlarmTime = 0;
       }
 
       init() {
@@ -942,19 +1137,16 @@
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         this.ctx = new AudioContext();
 
-        // Primary electric motor whine
         this.motorOsc = this.ctx.createOscillator();
         this.motorOsc.type = 'sawtooth';
         this.motorGain = this.ctx.createGain();
         this.motorGain.gain.value = 0.0;
 
-        // Sub bass hum
         this.subOsc = this.ctx.createOscillator();
         this.subOsc.type = 'sine';
         this.subGain = this.ctx.createGain();
         this.subGain.gain.value = 0.0;
 
-        // Filter for smooth motor sound
         this.filter = this.ctx.createBiquadFilter();
         this.filter.type = 'lowpass';
         this.filter.frequency.value = 800;
@@ -1002,6 +1194,26 @@
         osc.stop(now + 0.05);
       }
 
+      playEmergencyAlarm() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        if (now - this.lastAlarmTime < 0.25) return;
+        this.lastAlarmTime = now;
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(1800, now);
+        osc.frequency.setValueAtTime(1200, now + 0.08);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      }
+
       playFSDChime(engaged) {
         if (!this.enabled || !this.ctx) return;
         const now = this.ctx.currentTime;
@@ -1010,8 +1222,8 @@
         osc.type = 'sine';
 
         if (engaged) {
-          osc.frequency.setValueAtTime(587.33, now); // D5
-          osc.frequency.setValueAtTime(880.00, now + 0.12); // A5
+          osc.frequency.setValueAtTime(587.33, now);
+          osc.frequency.setValueAtTime(880.00, now + 0.12);
           gain.gain.setValueAtTime(0.2, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
         } else {
@@ -1026,22 +1238,6 @@
         osc.start(now);
         osc.stop(now + 0.4);
       }
-
-      playProximityBeep(urgency) {
-        if (!this.enabled || !this.ctx) return;
-        const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(1400, now);
-        gain.gain.setValueAtTime(0.15, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.1);
-      }
     }
 
     const audio = new AudioEngine();
@@ -1054,7 +1250,7 @@
       if (audio.enabled) {
         btn.classList.add('active');
         icon.setAttribute('data-lucide', 'volume-2');
-        showToast('Audio Synthesizer: ON');
+        showToast('Audio FX: ON');
       } else {
         btn.classList.remove('active');
         icon.setAttribute('data-lucide', 'volume-x');
@@ -1062,7 +1258,7 @@
           audio.motorGain.gain.value = 0;
           audio.subGain.gain.value = 0;
         }
-        showToast('Audio Synthesizer: MUTED');
+        showToast('Audio FX: MUTED');
       }
       lucide.createIcons();
     }
@@ -1088,7 +1284,6 @@
     controls.dampingFactor = 0.05;
     controls.maxPolarAngle = Math.PI / 2 - 0.02;
 
-    // Lighting
     const ambientLight = new THREE.AmbientLight(0x223344, 1.2);
     scene.add(ambientLight);
 
@@ -1106,7 +1301,6 @@
     const ROAD_LENGTH = 1200;
     const LANES = [-6, -2, 2, 6];
 
-    // Road Surface Mesh
     const roadGeo = new THREE.PlaneGeometry(ROAD_WIDTH, ROAD_LENGTH, 1, 100);
     const roadMat = new THREE.MeshStandardMaterial({
       color: 0x10141d,
@@ -1118,12 +1312,11 @@
     road.receiveShadow = true;
     scene.add(road);
 
-    // Ground Grid
     const gridHelper = new THREE.GridHelper(ROAD_LENGTH, 120, 0x00f0ff, 0x131f33);
     gridHelper.position.y = -0.05;
     scene.add(gridHelper);
 
-    // Road Markings (Dashed Lane Lines)
+    // Road Markings
     const laneLinesGroup = new THREE.Group();
     LANES.forEach((x, idx) => {
       if (idx === 0) return;
@@ -1161,7 +1354,6 @@
       b2.position.set(ROAD_WIDTH / 2 + w2 / 2 + 8, h2 / 2, z);
       buildingsGroup.add(b2);
 
-      // Street Lamps
       [-ROAD_WIDTH / 2 - 1, ROAD_WIDTH / 2 + 1].forEach(sideX => {
         const poleGeo = new THREE.CylinderGeometry(0.1, 0.1, 8);
         const poleMat = new THREE.MeshStandardMaterial({ color: 0x475569 });
@@ -1187,7 +1379,6 @@
     gantryBeam.position.set(0, 8.5, 0);
     trafficLightGroup.add(gantryBeam);
 
-    // Gantry Pillars
     [-ROAD_WIDTH / 2 - 2, ROAD_WIDTH / 2 + 2].forEach(px => {
       const pillar = new THREE.Mesh(
         new THREE.CylinderGeometry(0.3, 0.3, 9),
@@ -1197,7 +1388,6 @@
       trafficLightGroup.add(pillar);
     });
 
-    // Traffic Signal Box (Over each lane)
     const trafficLights = [];
     LANES.forEach(lx => {
       const box = new THREE.Mesh(
@@ -1206,7 +1396,6 @@
       );
       box.position.set(lx, 8.5, 0);
 
-      // Red, Yellow, Green bulbs
       const rBulb = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), new THREE.MeshBasicMaterial({ color: 0x330000 }));
       const yBulb = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), new THREE.MeshBasicMaterial({ color: 0x332200 }));
       const gBulb = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), new THREE.MeshBasicMaterial({ color: 0x00ff66 }));
@@ -1222,33 +1411,45 @@
       trafficLights.push({ box, rBulb, yBulb, gBulb });
     });
 
-    // White Stop Line on Road
     const stopLine = new THREE.Mesh(
       new THREE.PlaneGeometry(ROAD_WIDTH, 0.8),
       new THREE.MeshBasicMaterial({ color: 0xffffff })
     );
     stopLine.rotation.x = -Math.PI / 2;
-    stopLine.position.set(0, 0.04, 12); // 12 meters before gantry
+    stopLine.position.set(0, 0.04, 12);
     trafficLightGroup.add(stopLine);
 
-    trafficLightGroup.position.set(0, 0, -280); // 280m ahead
+    trafficLightGroup.position.set(0, 0, -280);
     scene.add(trafficLightGroup);
 
-    let trafficLightState = 'GREEN'; // GREEN, YELLOW, RED
+    let trafficLightState = 'GREEN';
     let trafficLightTimer = 0;
 
     function updateTrafficLights(dt) {
       trafficLightTimer += dt;
-      if (trafficLightTimer > 14) {
-        trafficLightTimer = 0;
-      }
+      if (trafficLightTimer > 14) trafficLightTimer = 0;
 
+      const oldState = trafficLightState;
       if (trafficLightTimer < 7) {
         trafficLightState = 'GREEN';
       } else if (trafficLightTimer < 9) {
         trafficLightState = 'YELLOW';
       } else {
         trafficLightState = 'RED';
+      }
+
+      if (oldState !== trafficLightState) {
+        if (trafficLightState === 'RED') {
+          const dLight = ego.z - trafficLightGroup.position.z;
+          if (dLight > 0 && dLight < 100) {
+            voiceAI.speak('V2X Red Traffic Light detected. Stopping.');
+          }
+        } else if (trafficLightState === 'GREEN') {
+          const dLight = ego.z - trafficLightGroup.position.z;
+          if (dLight > 0 && dLight < 100) {
+            voiceAI.speak('Traffic light green. Resuming acceleration.');
+          }
+        }
       }
 
       const v2xRate = document.getElementById('v2x-rate');
@@ -1308,13 +1509,13 @@
       rainSystem.visible = isRaining;
       const btn = document.getElementById('btn-toggle-weather');
       const label = document.getElementById('weather-label');
-      const icon = document.getElementById('weather-icon');
 
       if (isRaining) {
         btn.classList.add('active');
         label.textContent = 'CYBER RAIN';
         scene.fog.density = 0.015;
-        roadMat.roughness = 0.2; // Wet road reflection
+        roadMat.roughness = 0.2;
+        voiceAI.speak('Caution: Wet road surface detected. Traction control primed.');
         showToast('Weather: Cyber Rain & Wet Surface Physics');
       } else {
         btn.classList.remove('active');
@@ -1330,7 +1531,7 @@
       if (!isRaining) return;
       const pos = rainGeo.attributes.position.array;
       for (let i = 0; i < RAIN_COUNT * 3; i += 3) {
-        pos[i + 1] -= 1.2; // Rain falling
+        pos[i + 1] -= 1.2;
         if (pos[i + 1] < 0) {
           pos[i + 1] = 40;
           pos[i] = egoGroup.position.x + (Math.random() - 0.5) * 80;
@@ -1341,7 +1542,7 @@
     }
 
     /* ==========================================================
-       EGO VEHICLE MODEL (Cyber Electric Sedan)
+       EGO VEHICLE MODEL WITH 3D SENSOR RINGS
        ========================================================== */
     const egoGroup = new THREE.Group();
 
@@ -1357,7 +1558,7 @@
     carBody.castShadow = true;
     egoGroup.add(carBody);
 
-    // Car Cabin / Windshield Glass
+    // Car Cabin / Windshield
     const cabinGeo = new THREE.BoxGeometry(1.8, 0.6, 2.4);
     const cabinMat = new THREE.MeshStandardMaterial({
       color: 0x00f0ff,
@@ -1390,40 +1591,41 @@
     tailBar.position.set(0, 0.7, 2.31);
     egoGroup.add(tailBar);
 
-    // Turn Signal Blinkers
-    const blinkerLeft = new THREE.Mesh(
-      new THREE.BoxGeometry(0.15, 0.15, 0.2),
-      new THREE.MeshBasicMaterial({ color: 0x332200 })
-    );
+    // Turn Signals
+    const blinkerLeft = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.2), new THREE.MeshBasicMaterial({ color: 0x332200 }));
     blinkerLeft.position.set(-1.08, 0.8, -1.0);
     egoGroup.add(blinkerLeft);
 
-    const blinkerRight = new THREE.Mesh(
-      new THREE.BoxGeometry(0.15, 0.15, 0.2),
-      new THREE.MeshBasicMaterial({ color: 0x332200 })
-    );
+    const blinkerRight = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.2), new THREE.MeshBasicMaterial({ color: 0x332200 }));
     blinkerRight.position.set(1.08, 0.8, -1.0);
     egoGroup.add(blinkerRight);
 
-    // Roof LiDAR Puck
+    // Roof LiDAR Puck & Halo
     const lidarPuckGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.2, 16);
     const lidarPuckMat = new THREE.MeshStandardMaterial({ color: 0x00f0ff, metalness: 0.8 });
     const lidarPuck = new THREE.Mesh(lidarPuckGeo, lidarPuckMat);
     lidarPuck.position.set(0, 1.55, 0.2);
     egoGroup.add(lidarPuck);
 
-    // LiDAR Scanner Halo Ring
     const haloGeo = new THREE.RingGeometry(0.4, 0.5, 32);
-    const haloMat = new THREE.MeshBasicMaterial({
-      color: 0x00f0ff,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.8
-    });
+    const haloMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
     const lidarHalo = new THREE.Mesh(haloGeo, haloMat);
     lidarHalo.rotation.x = Math.PI / 2;
     lidarHalo.position.set(0, 1.6, 0.2);
     egoGroup.add(lidarHalo);
+
+    // 3D Ultrasonic Proximity Shield Arc (Surrounding ego car)
+    const shieldGeo = new THREE.RingGeometry(3.0, 3.2, 32);
+    const shieldMat = new THREE.MeshBasicMaterial({
+      color: 0x00f0ff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.4
+    });
+    const proximityShield = new THREE.Mesh(shieldGeo, shieldMat);
+    proximityShield.rotation.x = -Math.PI / 2;
+    proximityShield.position.y = 0.1;
+    egoGroup.add(proximityShield);
 
     // Wheels
     const wheels = [];
@@ -1439,12 +1641,10 @@
     wheelPositions.forEach(pos => {
       const wheelHolder = new THREE.Group();
       wheelHolder.position.set(pos.x, pos.y, pos.z);
-
       const wheelMesh = new THREE.Mesh(wheelGeo, wheelMat);
       wheelMesh.rotation.z = Math.PI / 2;
       wheelMesh.castShadow = true;
       wheelHolder.add(wheelMesh);
-
       egoGroup.add(wheelHolder);
       wheels.push({ group: wheelHolder, mesh: wheelMesh, isFront: pos.isFront });
     });
@@ -1524,7 +1724,6 @@
       body.castShadow = true;
       group.add(body);
 
-      // 3D Bounding Box
       const bboxGeo = new THREE.BoxGeometry(model.width + 0.3, model.height + 0.3, model.length + 0.3);
       const bboxMat = new THREE.MeshBasicMaterial({
         color: 0x00f0ff,
@@ -1536,7 +1735,6 @@
       bbox.position.y = model.height / 2;
       group.add(bbox);
 
-      // Taillights
       const tail = new THREE.Mesh(
         new THREE.BoxGeometry(model.width * 0.8, 0.1, 0.05),
         new THREE.MeshBasicMaterial({ color: 0xff0033 })
@@ -1559,9 +1757,9 @@
       };
     }
 
-    trafficList.push(createTrafficVehicle(1, -60, 85));
-    trafficList.push(createTrafficVehicle(2, -120, 100));
-    trafficList.push(createTrafficVehicle(0, -90, 75));
+    trafficList.push(createTrafficVehicle(1, -60, 75)); // Slower car
+    trafficList.push(createTrafficVehicle(2, -120, 95));
+    trafficList.push(createTrafficVehicle(0, -90, 70));
     trafficList.push(createTrafficVehicle(3, -150, 115));
     trafficList.push(createTrafficVehicle(1, 80, 80));
     trafficList.push(createTrafficVehicle(2, 140, 95));
@@ -1615,51 +1813,46 @@
     function spawnHazard(x, z) {
       const group = new THREE.Group();
 
-      // Traffic Cone or Construction Hazard
-      const coneGeo = new THREE.ConeGeometry(0.4, 1.0, 16);
-      const coneMat = new THREE.MeshStandardMaterial({ color: 0xff6600, roughness: 0.4 });
+      const coneGeo = new THREE.ConeGeometry(0.45, 1.1, 16);
+      const coneMat = new THREE.MeshStandardMaterial({ color: 0xff4400, roughness: 0.4 });
       const cone = new THREE.Mesh(coneGeo, coneMat);
-      cone.position.y = 0.5;
+      cone.position.y = 0.55;
       group.add(cone);
 
-      const stripeGeo = new THREE.CylinderGeometry(0.26, 0.32, 0.25, 16);
+      const stripeGeo = new THREE.CylinderGeometry(0.28, 0.34, 0.25, 16);
       const stripeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
       const stripe = new THREE.Mesh(stripeGeo, stripeMat);
-      stripe.position.y = 0.45;
+      stripe.position.y = 0.5;
       group.add(stripe);
 
-      // Hazard Bounding Box
-      const bboxGeo = new THREE.BoxGeometry(1.0, 1.2, 1.0);
+      const bboxGeo = new THREE.BoxGeometry(1.2, 1.3, 1.2);
       const bboxMat = new THREE.MeshBasicMaterial({
-        color: 0xff3300,
+        color: 0xff0033,
         wireframe: true,
         transparent: true,
         opacity: 0.9
       });
       const bbox = new THREE.Mesh(bboxGeo, bboxMat);
-      bbox.position.y = 0.6;
+      bbox.position.y = 0.65;
       group.add(bbox);
 
       group.position.set(x, 0, z);
       scene.add(group);
 
       dynamicHazards.push({ group, bbox, x, z });
-      showToast(`⚠️ Dynamic Hazard Dropped at Lane (X: ${x.toFixed(1)}m, Z: ${z.toFixed(0)}m)`);
-      audio.playProximityBeep(0.8);
+      voiceAI.speak('Hazard detected ahead! Autonomous evasion initiated.');
+      showToast(`⚠️ Hazard Dropped! Auto-evasion in progress`);
+      audio.playEmergencyAlarm();
     }
 
     function spawnHazardAhead() {
-      // Drop in current ego lane 40 meters ahead
-      spawnHazard(ego.targetX, ego.z - 40);
+      spawnHazard(ego.targetX, ego.z - 35);
     }
 
-    // Raycast click to spawn hazard on road
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
     window.addEventListener('pointerdown', (e) => {
-      // Ignore if clicking on HUD interactive elements
       if (e.target.closest('.interactive')) return;
-
       mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
       mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
       raycaster.setFromCamera(mouse, camera);
@@ -1671,7 +1864,7 @@
     });
 
     /* ==========================================================
-       VEHICLE DYNAMICS, DRIVING PROFILES & AUTOPILOT
+       AUTOPILOT STATE & MULTI-LANE EVASION ENGINE
        ========================================================== */
     const ego = {
       x: -2,
@@ -1685,10 +1878,14 @@
       steeringAngle: 0,
       wheelRotation: 0,
       isFSD: true,
-      driveProfile: 'standard', // chill, standard, madmax
+      driveProfile: 'standard',
       state: 'CRUISING',
       viewMode: 'chase',
-      blinkerState: 'OFF' // OFF, LEFT, RIGHT
+      blinkerState: 'OFF',
+      bsmLeft: false,
+      bsmRight: false,
+      alertLevel: 'NOMINAL', // NOMINAL, CAUTION, DANGER
+      lastEvasionTime: 0
     };
 
     function setDriveProfile(profile) {
@@ -1698,185 +1895,217 @@
       });
       if (profile === 'chill') {
         ego.targetSpeed = 80;
-        showToast('Drive Profile: CHILL (80 km/h, High Headway)');
+        showToast('Profile: CHILL (80 km/h, High Margin)');
       } else if (profile === 'standard') {
         ego.targetSpeed = 100;
-        showToast('Drive Profile: STANDARD (100 km/h, Balanced)');
+        showToast('Profile: STANDARD (100 km/h, Balanced)');
       } else if (profile === 'madmax') {
         ego.targetSpeed = 130;
-        showToast('Drive Profile: MAD MAX (130 km/h, Aggressive Overtake)');
+        showToast('Profile: MAD MAX (130 km/h, Rapid Overtake)');
       }
     }
 
-    const keys = { up: false, down: false, left: false, right: false, space: false };
-    window.addEventListener('keydown', (e) => {
-      if (['ArrowUp', 'KeyW'].includes(e.code)) keys.up = true;
-      if (['ArrowDown', 'KeyS'].includes(e.code)) keys.down = true;
-      if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.left = true;
-      if (['ArrowRight', 'KeyD'].includes(e.code)) keys.right = true;
-      if (e.code === 'Space') keys.space = true;
-
-      if (ego.isFSD && (keys.up || keys.down || keys.left || keys.right)) {
-        setFSD(false, true);
-      }
-    });
-
-    window.addEventListener('keyup', (e) => {
-      if (['ArrowUp', 'KeyW'].includes(e.code)) keys.up = false;
-      if (['ArrowDown', 'KeyS'].includes(e.code)) keys.down = false;
-      if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.left = false;
-      if (['ArrowRight', 'KeyD'].includes(e.code)) keys.right = false;
-      if (e.code === 'Space') keys.space = false;
-    });
-
     /* ==========================================================
-       AUTOPILOT LOGIC & SENSOR FUSION ENGINE
+       INTELLIGENT MULTI-LANE GAP ANALYSIS & PROACTIVE EVASION
        ========================================================== */
-    function updateAutopilot(dt) {
-      if (!ego.isFSD) {
-        // Manual Driving
-        if (keys.up) {
-          ego.speed = Math.min(160, ego.speed + 35 * dt);
-          ego.throttle = Math.min(100, ego.throttle + 120 * dt);
-          ego.brake = 0;
-        } else if (keys.down) {
-          ego.speed = Math.max(0, ego.speed - 60 * dt);
-          ego.brake = Math.min(100, ego.brake + 160 * dt);
-          ego.throttle = 0;
-        } else {
-          ego.speed = Math.max(0, ego.speed - 10 * dt);
-          ego.throttle = Math.max(0, ego.throttle - 80 * dt);
-          ego.brake = Math.max(0, ego.brake - 80 * dt);
-        }
+    function evaluateLanes() {
+      // Computes clearance for each lane: LANES = [-6, -2, 2, 6]
+      const laneStatus = [
+        { lane: 0, x: -6, clearDist: 999, leadSpeed: 120, hasBlindSpot: false },
+        { lane: 1, x: -2, clearDist: 999, leadSpeed: 120, hasBlindSpot: false },
+        { lane: 2, x: 2, clearDist: 999, leadSpeed: 120, hasBlindSpot: false },
+        { lane: 3, x: 6, clearDist: 999, leadSpeed: 120, hasBlindSpot: false }
+      ];
 
-        if (keys.space) {
-          ego.speed = Math.max(0, ego.speed - 90 * dt);
-          ego.brake = 100;
-        }
-
-        if (keys.left) {
-          ego.steeringAngle = Math.max(-25, ego.steeringAngle - 45 * dt);
-          ego.x -= (ego.speed / 15) * dt;
-        } else if (keys.right) {
-          ego.steeringAngle = Math.min(25, ego.steeringAngle + 45 * dt);
-          ego.x += (ego.speed / 15) * dt;
-        } else {
-          ego.steeringAngle *= 0.88;
-        }
-
-        ego.state = 'MANUAL OVERRIDE';
-        ego.blinkerState = 'OFF';
-        return;
-      }
-
-      // ----------------------------------------------------
-      // AUTONOMOUS FSD BEHAVIOR
-      // ----------------------------------------------------
-      let leadVehicle = null;
-      let minLeadDistance = 9999;
-
+      // Check vehicles
       trafficList.forEach(t => {
-        const dX = Math.abs(t.group.position.x - ego.x);
+        const dX = t.group.position.x;
         const dZ = ego.z - t.group.position.z;
-        if (dX < 2.2 && dZ > 0 && dZ < minLeadDistance) {
-          minLeadDistance = dZ;
-          leadVehicle = t;
-        }
+
+        laneStatus.forEach(ls => {
+          if (Math.abs(dX - ls.x) < 2.0) {
+            // Vehicle is in this lane
+            if (dZ > 0 && dZ < ls.clearDist) {
+              ls.clearDist = dZ;
+              ls.leadSpeed = t.speed;
+            }
+            // Blind spot check: alongside ego (-10m to +10m)
+            if (Math.abs(dZ) < 10) {
+              ls.hasBlindSpot = true;
+            }
+          }
+        });
       });
 
-      // Check Dynamic Hazards
-      let hazardDetected = false;
+      // Check hazards
       dynamicHazards.forEach(h => {
         const dZ = ego.z - h.z;
-        const dX = Math.abs(h.x - ego.x);
-        if (dZ > 0 && dZ < 55 && dX < 2.4) {
-          hazardDetected = true;
-          if (dZ < minLeadDistance) {
-            minLeadDistance = dZ;
-            leadVehicle = { speed: 0 };
+        laneStatus.forEach(ls => {
+          if (Math.abs(h.x - ls.x) < 2.2 && dZ > 0 && dZ < ls.clearDist) {
+            ls.clearDist = dZ;
+            ls.leadSpeed = 0; // Stationary hazard!
           }
-        }
+        });
       });
 
-      // Check Pedestrians
-      let emergencyStop = false;
+      return laneStatus;
+    }
+
+    function updateAutopilot(dt) {
+      if (!ego.isFSD) return;
+
+      const lanes = evaluateLanes();
+      const currentLaneObj = lanes[ego.targetLane] || lanes[1];
+      const minLeadDistance = currentLaneObj.clearDist;
+      const leadSpeed = currentLaneObj.leadSpeed;
+
+      // Update Blind Spot Monitor (BSM)
+      ego.bsmLeft = (ego.targetLane > 0) && lanes[ego.targetLane - 1].hasBlindSpot;
+      ego.bsmRight = (ego.targetLane < LANES.length - 1) && lanes[ego.targetLane + 1].hasBlindSpot;
+
+      document.getElementById('bsm-left').classList.toggle('active', ego.bsmLeft);
+      document.getElementById('bsm-right').classList.toggle('active', ego.bsmRight);
+
+      // Check V2X Traffic Light
+      const distToLight = ego.z - trafficLightGroup.position.z - 12;
+      let lightStop = false;
+      if (distToLight > 0 && distToLight < 70) {
+        if (trafficLightState === 'RED' || (trafficLightState === 'YELLOW' && distToLight > 25)) {
+          lightStop = true;
+        }
+      }
+
+      // Check Pedestrians ahead
+      let pedStop = false;
       pedestrians.forEach(p => {
         const dZ = ego.z - p.group.position.z;
         const dX = Math.abs(p.group.position.x - ego.x);
         if (dZ > 0 && dZ < 45 && dX < 3.0) {
-          emergencyStop = true;
-          leadVehicle = { speed: 0 };
-          minLeadDistance = dZ;
+          pedStop = true;
         }
       });
 
-      // Check V2X Traffic Light State
-      const distToTrafficLight = ego.z - trafficLightGroup.position.z - 12;
-      let trafficLightStop = false;
-      if (distToTrafficLight > 0 && distToTrafficLight < 70) {
-        if (trafficLightState === 'RED' || (trafficLightState === 'YELLOW' && distToTrafficLight > 25)) {
-          trafficLightStop = true;
-          if (distToTrafficLight < minLeadDistance) {
-            minLeadDistance = distToTrafficLight;
-            leadVehicle = { speed: 0 };
-          }
+      // Time To Collision (TTC) Calculation
+      const relSpeed = (ego.speed - leadSpeed) / 3.6; // m/s
+      let ttc = relSpeed > 0 ? (minLeadDistance / relSpeed) : 99;
+      const statTTC = document.getElementById('stat-ttc');
+
+      if (ttc < 4.0) {
+        statTTC.textContent = `TTC: ${ttc.toFixed(1)}s`;
+        statTTC.style.color = ttc < 2.0 ? 'var(--rose)' : 'var(--amber)';
+      } else {
+        statTTC.textContent = 'TTC: Safe (>4.0s)';
+        statTTC.style.color = 'var(--emerald)';
+      }
+
+      // ----------------------------------------------------
+      // PROACTIVE ACTIVE COLLISION AVOIDANCE & OVERTAKE
+      // ----------------------------------------------------
+      const now = Date.now();
+      const needsEvasion = (minLeadDistance < 42 && leadSpeed < ego.targetSpeed - 8);
+
+      if (needsEvasion && (now - ego.lastEvasionTime > 1500)) {
+        // Evaluate adjacent lanes for evasion
+        const leftLaneIdx = ego.targetLane - 1;
+        const rightLaneIdx = ego.targetLane + 1;
+
+        const leftCandidate = (leftLaneIdx >= 0) ? lanes[leftLaneIdx] : null;
+        const rightCandidate = (rightLaneIdx < LANES.length) ? lanes[rightLaneIdx] : null;
+
+        let bestNewLane = -1;
+
+        // Prefer lane with maximum clearance and no blind spot
+        if (leftCandidate && !leftCandidate.hasBlindSpot && leftCandidate.clearDist > 45) {
+          bestNewLane = leftLaneIdx;
+        } else if (rightCandidate && !rightCandidate.hasBlindSpot && rightCandidate.clearDist > 45) {
+          bestNewLane = rightLaneIdx;
+        }
+
+        if (bestNewLane !== -1 && bestNewLane !== ego.targetLane) {
+          // Execute Autonomous Lane Evasion Swerve!
+          ego.targetLane = bestNewLane;
+          ego.blinkerState = bestNewLane < ego.targetLane ? 'LEFT' : 'RIGHT';
+          ego.lastEvasionTime = now;
+          ego.state = 'PROACTIVE EVASION (OVERTAKE)';
+          voiceAI.speak(`Obstacle ahead. Swerving to Lane ${bestNewLane + 1}.`);
+          showToast(`🚗 Auto-Evasion: Switching to Lane ${bestNewLane + 1}`);
         }
       }
 
-      // Profile headway constants
-      const headwayFactor = ego.driveProfile === 'chill' ? 2.2 : (ego.driveProfile === 'madmax' ? 1.0 : 1.6);
-      const targetFollowDist = Math.max(16, (ego.speed / 3.6) * headwayFactor);
-      const maxCruise = ego.driveProfile === 'chill' ? 80 : (ego.driveProfile === 'madmax' ? 130 : 105);
+      // ----------------------------------------------------
+      // EMERGENCY BRAKING (AEB) & SAFETY ALERTS
+      // ----------------------------------------------------
+      const centerWarning = document.getElementById('center-warning');
+      const centerWarningText = document.getElementById('center-warning-text');
+      const dangerVignette = document.getElementById('danger-vignette');
+      const safetyBox = document.getElementById('safety-alert-box');
+      const safetyText = document.getElementById('safety-status-text');
+      const fcwBadge = document.getElementById('fcw-badge');
 
-      if (trafficLightStop) {
+      if (lightStop) {
         ego.state = 'STOPPING AT RED LIGHT (V2X)';
         ego.targetSpeed = 0;
-        ego.brake = distToTrafficLight < 20 ? 80 : 45;
+        ego.brake = distToLight < 20 ? 85 : 45;
         ego.throttle = 0;
-      } else if (emergencyStop || (hazardDetected && minLeadDistance < 20)) {
-        ego.state = emergencyStop ? 'PEDESTRIAN YIELD' : 'HAZARD EVASION (AEB)';
+        safetyBox.className = 'safety-alert-box warning';
+        safetyText.innerHTML = '<i data-lucide="traffic-cone"></i> V2X RED LIGHT - DECELERATING';
+        fcwBadge.textContent = 'V2X HOLD';
+        fcwBadge.style.color = 'var(--amber)';
+        centerWarning.classList.remove('show');
+        dangerVignette.classList.remove('active');
+      } else if (pedStop || minLeadDistance < 16 || ttc < 1.8) {
+        // CRITICAL COLLISION IMMINENT - AEB TRIGGERED
+        ego.state = 'EMERGENCY BRAKING (AEB)';
         ego.targetSpeed = 0;
-        ego.brake = 90;
+        ego.brake = 100;
         ego.throttle = 0;
-        audio.playProximityBeep(1.0);
-      } else if (leadVehicle && minLeadDistance < targetFollowDist * 1.8) {
-        // Following or Overtaking
-        if (minLeadDistance < 18) {
-          ego.state = 'AEB EMERGENCY BRAKE';
-          ego.targetSpeed = Math.min(leadVehicle.speed * 0.5, 20);
-          ego.brake = 80;
-          ego.throttle = 0;
-          audio.playProximityBeep(1.0);
-        } else {
-          ego.state = 'FOLLOWING LEAD';
-          ego.targetSpeed = leadVehicle.speed;
-          ego.brake = (minLeadDistance < targetFollowDist) ? 35 : 0;
-          ego.throttle = (minLeadDistance > targetFollowDist) ? 30 : 0;
 
-          // Autonomous Lane Change
-          if (ego.targetLane === ego.lane && (leadVehicle.speed < maxCruise - 10 || hazardDetected)) {
-            const canLeft = ego.lane > 0;
-            const canRight = ego.lane < LANES.length - 1;
+        safetyBox.className = 'safety-alert-box danger';
+        safetyText.innerHTML = '<i data-lucide="alert-triangle"></i> CRITICAL: FORWARD COLLISION IMMINENT!';
+        fcwBadge.textContent = 'AEB ACTIVE';
+        fcwBadge.style.color = 'var(--rose)';
 
-            if (canLeft) {
-              ego.targetLane = ego.lane - 1;
-              ego.blinkerState = 'LEFT';
-            } else if (canRight) {
-              ego.targetLane = ego.lane + 1;
-              ego.blinkerState = 'RIGHT';
-            }
-          }
-        }
+        centerWarningText.textContent = pedStop ? '⚠️ PEDESTRIAN DETECTED - EMERGENCY BRAKING' : '⚠️ COLLISION WARNING - EMERGENCY BRAKE!';
+        centerWarning.classList.add('show');
+        dangerVignette.classList.add('active');
+
+        proximityShield.material.color.setHex(0xf43f5e);
+        audio.playEmergencyAlarm();
+        voiceAI.speak('Warning! Forward collision imminent. Emergency brakes applied!', true);
+      } else if (minLeadDistance < 32) {
+        // CAUTION - FOLLOWING CLOSELY
+        ego.state = 'FOLLOWING LEAD (HEADWAY ADJUST)';
+        ego.targetSpeed = Math.min(leadSpeed, ego.targetSpeed);
+        ego.brake = 40;
+        ego.throttle = 0;
+
+        safetyBox.className = 'safety-alert-box warning';
+        safetyText.innerHTML = '<i data-lucide="shield"></i> CAUTION: MAINTAINING SAFE HEADWAY GAP';
+        fcwBadge.textContent = 'GAP CONTROL';
+        fcwBadge.style.color = 'var(--amber)';
+        centerWarning.classList.remove('show');
+        dangerVignette.classList.remove('active');
+        proximityShield.material.color.setHex(0xf59e0b);
       } else {
+        // ALL CLEAR - NOMINAL CRUISE
         ego.state = 'CRUISING SPEED';
+        const maxCruise = ego.driveProfile === 'chill' ? 80 : (ego.driveProfile === 'madmax' ? 130 : 105);
         ego.targetSpeed = maxCruise;
         ego.brake = 0;
         ego.throttle = 45;
+
+        safetyBox.className = 'safety-alert-box';
+        safetyText.innerHTML = '<i data-lucide="check-circle-2"></i> ALL CLEAR - NO COLLISION HAZARD';
+        fcwBadge.textContent = 'NOMINAL';
+        fcwBadge.style.color = 'var(--emerald)';
+        centerWarning.classList.remove('show');
+        dangerVignette.classList.remove('active');
+        proximityShield.material.color.setHex(0x00f0ff);
       }
 
       // Smooth PID speed adjustment
       const speedError = ego.targetSpeed - ego.speed;
-      ego.speed += speedError * (ego.driveProfile === 'madmax' ? 2.5 : 1.5) * dt;
+      ego.speed += speedError * (ego.driveProfile === 'madmax' ? 2.8 : 1.8) * dt;
 
       // Smooth Lane Change & Steering
       ego.lane = LANES.findIndex(lx => Math.abs(lx - ego.x) < 2);
@@ -1884,12 +2113,10 @@
       ego.targetX = LANES[ego.targetLane] || LANES[1];
 
       const lateralError = ego.targetX - ego.x;
-      const targetSteer = THREE.MathUtils.clamp(lateralError * 6.5, -20, 20);
-      ego.steeringAngle += (targetSteer - ego.steeringAngle) * 4.2 * dt;
+      const targetSteer = THREE.MathUtils.clamp(lateralError * 6.8, -22, 22);
+      ego.steeringAngle += (targetSteer - ego.steeringAngle) * 4.5 * dt;
+      ego.x += (ego.speed / 3.6) * Math.sin((ego.steeringAngle * Math.PI) / 180) * dt * 0.85;
 
-      ego.x += (ego.speed / 3.6) * Math.sin((ego.steeringAngle * Math.PI) / 180) * dt * 0.8;
-
-      // Turn signal auto-cancel when lane change complete
       if (Math.abs(lateralError) < 0.4) {
         ego.blinkerState = 'OFF';
       }
@@ -1997,38 +2224,41 @@
       });
 
       switch (idx) {
-        case 0: // Highway Cruise & Overtake
+        case 0: // Highway Cruise & Auto Overtake
           ego.speed = 95;
           ego.targetSpeed = 105;
           ego.targetLane = 1;
-          trafficList[0].group.position.set(LANES[1], 0, ego.z - 50);
-          trafficList[0].speed = 70;
+          trafficList[0].group.position.set(LANES[1], 0, ego.z - 45);
+          trafficList[0].speed = 65;
+          voiceAI.speak('Scenario 1: Highway cruise with auto overtake');
           showToast('Scenario: Highway Cruise & Auto Overtake');
           break;
-        case 1: // V2X Traffic Light & Intersection
-          trafficLightGroup.position.z = ego.z - 65;
+        case 1: // Sudden Brake Check & Evasion
+          ego.speed = 100;
+          trafficList[1].group.position.set(LANES[ego.targetLane], 0, ego.z - 28);
+          trafficList[1].speed = 20; // Sudden stop ahead
+          voiceAI.speak('Alert: Sudden obstacle ahead! Evaluating evasive trajectory.');
+          showToast('Scenario: Sudden Brake Check & Active Evasion!');
+          break;
+        case 2: // V2X Traffic Light
+          trafficLightGroup.position.z = ego.z - 70;
           trafficLightState = 'RED';
-          trafficLightTimer = 9.5; // Trigger red stop
+          trafficLightTimer = 9.5;
+          voiceAI.speak('Approaching V2X Red Traffic Light. Decelerating.');
           showToast('Scenario: V2X Red Traffic Light Autonomy');
           break;
-        case 2: // Urban Crosswalk & Yield
+        case 3: // Urban Crosswalk & Yield
           ego.speed = 50;
           ego.targetSpeed = 50;
           pedestrians[0].group.position.set(-6, 0, ego.z - 35);
+          voiceAI.speak('Pedestrian crossing ahead. Halting vehicle.');
           showToast('Scenario: Crosswalk & Pedestrian Yield');
-          break;
-        case 3: // Sudden Cut-In & AEB
-          ego.speed = 100;
-          trafficList[1].group.position.set(LANES[2], 0, ego.z - 25);
-          trafficList[1].group.position.x = LANES[1];
-          trafficList[1].speed = 40;
-          showToast('Scenario: Sudden Cut-In & AEB Activated!');
           break;
       }
     }
 
     /* ==========================================================
-       VIEW MODE CONTROLS (Including Semantic AI Mode)
+       VIEW MODE CONTROLS
        ========================================================== */
     function setViewMode(mode) {
       ego.viewMode = mode;
@@ -2041,9 +2271,9 @@
         road.material.wireframe = true;
         buildingsGroup.visible = false;
       } else if (mode === 'semantic') {
-        scene.background.setHex(0x000000); // Black Sky
+        scene.background.setHex(0x000000);
         road.material.wireframe = false;
-        road.material.color.setHex(0x800080); // Purple Road
+        road.material.color.setHex(0x800080);
         buildingsGroup.visible = true;
         showToast('Semantic AI: Classified Surface & Object Masks');
       } else {
@@ -2060,13 +2290,12 @@
       setFSD(!ego.isFSD);
     }
 
-    function setFSD(active, isOverride = false) {
+    function setFSD(active) {
       ego.isFSD = active;
       const btn = document.getElementById('btn-toggle-fsd');
       const pill = document.getElementById('fsd-status-pill');
       const stateText = document.getElementById('fsd-state-text');
       const btnLabel = document.getElementById('fsd-btn-label');
-      const manualHint = document.getElementById('manual-hint');
 
       if (active) {
         btn.classList.add('active');
@@ -2074,8 +2303,8 @@
         pill.style.background = 'rgba(16, 185, 129, 0.15)';
         pill.style.borderColor = 'rgba(16, 185, 129, 0.3)';
         pill.style.color = 'var(--emerald)';
-        stateText.textContent = 'FSD V12.8 ACTIVE';
-        manualHint.style.display = 'none';
+        stateText.textContent = 'FSD V13.0 ACTIVE';
+        voiceAI.speak('Autonomous Autopilot Engaged');
         showToast('Autonomous Full Self-Driving Engaged');
         audio.playFSDChime(true);
       } else {
@@ -2084,8 +2313,8 @@
         pill.style.background = 'rgba(244, 63, 94, 0.15)';
         pill.style.borderColor = 'rgba(244, 63, 94, 0.3)';
         pill.style.color = 'var(--rose)';
-        stateText.textContent = isOverride ? 'MANUAL OVERRIDE' : 'MANUAL DRIVE';
-        manualHint.style.display = 'flex';
+        stateText.textContent = 'MANUAL DRIVE';
+        voiceAI.speak('Autopilot disengaged. Take control.');
         showToast('Autopilot Disengaged - Driver in Control');
         audio.playFSDChime(false);
       }
@@ -2111,7 +2340,7 @@
       requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.1);
 
-      // 1. Update Autopilot & Dynamics
+      // 1. Update Autopilot Dynamics & Evasion
       updateAutopilot(dt);
 
       // 2. Advance Ego Vehicle along Z
@@ -2161,10 +2390,10 @@
         trafficLightGroup.position.z = ego.z - 300 - Math.random() * 150;
       }
 
-      // 7. Update Weather / Rain System
+      // 7. Update Weather
       updateRain(ego.z);
 
-      // 8. Infinite Road & Scenery Looping
+      // 8. Infinite Road Looping
       if (ego.z < road.position.z - 100) {
         road.position.z -= 100;
         gridHelper.position.z -= 100;
@@ -2174,7 +2403,7 @@
       updateLiDAR(dt);
       updateTrajectoryRibbon();
 
-      // 10. Update Camera Views
+      // 10. Update Camera
       if (ego.viewMode === 'chase' || ego.viewMode === 'semantic') {
         const targetCamPos = new THREE.Vector3(ego.x, 3.8, ego.z + 8.5);
         camera.position.lerp(targetCamPos, 0.1);
@@ -2203,14 +2432,12 @@
       renderer.render(scene, camera);
     }
 
-    // Window Resize Handler
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Start Simulation
     animate();
   </script>
 </body>
